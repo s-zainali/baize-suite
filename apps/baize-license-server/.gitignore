@@ -1,0 +1,5 @@
+.private_key.pem
+.public_key.pem
+.env*
+__pycache__/
+project.zip

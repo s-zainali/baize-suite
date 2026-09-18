@@ -1,0 +1,50 @@
+# Local stack that mirrors production: Postgres instead of SQLite, same app.
+#
+#   docker compose up --build          # first run: builds image, starts db + web
+#   open http://localhost:5000
+#
+# The db data lives in the named volume `pgdata`, so it survives `down`.
+# To wipe it and start clean:  docker compose down -v
+#
+# Prefer running the app on your host against just this Postgres? Start only the
+# db (`docker compose up db`) and point the app at it:
+#   DATABASE_URL=postgresql://baize:baize@localhost:5432/lounge python backend/api/index.py --dev
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: baize
+      POSTGRES_PASSWORD: baize
+      POSTGRES_DB: lounge
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U baize -d lounge"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      # The app rewrites postgres:// -> postgresql:// itself, but this is already
+      # the driver form.
+      DATABASE_URL: ${DATABASE_URL:-postgresql://baize:baize@db:5432/lounge}
+      APP_ROLE: all
+      # The entrypoint runs `flask db upgrade` + `flask seed`; the server process
+      # then just serves.
+      MIGRATE_ON_START: "0"
+      # Override these in a repo-root .env for anything shared or persistent.
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-staff-secret-change-me}
+      CUSTOMER_JWT_SECRET: ${CUSTOMER_JWT_SECRET:-dev-customer-secret-change-me}
+      PORT: "5000"
+    ports:
+      - "5000:5000"
+
+volumes:
+  pgdata:

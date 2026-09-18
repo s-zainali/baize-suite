@@ -1,0 +1,14 @@
+{
+    "name": "@baize/ui",
+    "version": "0.1.0",
+    "description": "Shared Baize UI — the pool/snooker/console/foosball table graphics and table-type helpers, used by both the club app (baize) and the customer app (baize-customer). Edit here once; both apps pick it up.",
+    "type": "module",
+    "exports": {
+      ".": "./src/index.js",
+      "./style.css": "./src/style.css"
+    },
+    "files": ["src"],
+    "peerDependencies": {
+      "vue": "^3.5.0"
+    }
+  }

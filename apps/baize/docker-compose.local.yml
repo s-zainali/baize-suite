@@ -1,0 +1,41 @@
+# Baize LOCAL install — Postgres + the compiled (source-free) app, together.
+#   build:  VITE_LICENSE_SERVER_URL=https://license.baize.pk docker compose -f docker-compose.local.yml build
+#   run:    ./start.sh      (or: export LICENSE_PUBLIC_KEY="$(cat public.pem)" && docker compose -f docker-compose.local.yml up -d)
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: baize
+      POSTGRES_PASSWORD: baize
+      POSTGRES_DB: baize
+    volumes:
+      - baizedata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U baize -d baize"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      args:
+        VITE_LICENSE_SERVER_URL: "${VITE_LICENSE_SERVER_URL:-https://license.baize.pk}"
+    image: baize-local
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - baize.env
+    environment:
+      # PEM has newlines, so it's injected from public.pem via the shell (see start.sh),
+      # not the env_file (which can't hold multi-line values).
+      LICENSE_PUBLIC_KEY: "${LICENSE_PUBLIC_KEY}"
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+
+volumes:
+  baizedata:

@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: lounge-suite
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: "python backend/api/index.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.14.5"

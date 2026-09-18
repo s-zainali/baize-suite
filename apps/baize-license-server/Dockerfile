@@ -1,0 +1,32 @@
+# Stage 1: Build the Vue Frontend
+FROM node:20-alpine AS frontend-builder
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Setup Python Backend & Bundle Static Files
+FROM python:3.11-slim
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y libpq-dev gcc && rm -rf /var/lib/apt/lists/*
+
+# Copy backend requirements and install dependencies
+COPY backend/requirements.txt ./backend/
+RUN pip install --no-cache-dir -r backend/requirements.txt
+
+# Copy backend source code
+COPY backend/ ./backend/
+
+# Copy built frontend output from Stage 1 into the folder Flask expects
+COPY --from=frontend-builder /app/dist /app/dist
+
+WORKDIR /app/backend
+
+# Expose port and run application via Gunicorn
+ENV PORT=10000
+EXPOSE 10000
+
+CMD gunicorn --bind 0.0.0.0:$PORT app:app

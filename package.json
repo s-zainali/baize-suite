@@ -1,0 +1,8 @@
+{
+    "name": "baize-suite",
+    "private": true,
+    "workspaces": [
+      "packages/*",
+      "apps/*/frontend"
+    ]
+  }

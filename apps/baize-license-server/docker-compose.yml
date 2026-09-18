@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: baizelic
+      POSTGRES_PASSWORD: baizelic
+      POSTGRES_DB: licensing
+    ports:
+      - "5433:5432"          # 5433 on the host so it won't clash with the app's Postgres (5432)
+    volumes:
+      - licdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U baizelic -d licensing"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://baizelic:baizelic@db:5432/licensing
+      CLUB_JWT_SECRET: ${CLUB_JWT_SECRET:-change-me-club-secret}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET:-}
+      ADMIN_SESSION_HOURS: ${ADMIN_SESSION_HOURS:-12}
+      EXPIRING_SOON_DAYS: ${EXPIRING_SOON_DAYS:-14}
+      AUTO_TRIAL_DAYS: ${AUTO_TRIAL_DAYS:-0}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      LICENSE_KID: ${LICENSE_KID:-baize-1}
+    volumes:
+      - ./.private_key.pem:/app/.private_key.pem:ro   # mount your signing key read-only
+    ports:
+      - "8090:8090"
+
+volumes:
+  licdata:
