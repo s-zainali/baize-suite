@@ -1,2 +1,2 @@
 @import "tailwindcss";
-@source "../node_modules/@baize/ui/src/**/*.{vue,js}";
+@source "../../../packages/baize-ui/src";

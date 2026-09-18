@@ -20,6 +20,9 @@ from pydantic import BaseModel
 from sqlalchemy import (create_engine, Column, Integer, String, DateTime, Boolean,
                         Text, ForeignKey, func, or_)
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
+from dotenv import load_dotenv
+
+load_dotenv()
 
 DATABASE_URL = os.environ["DATABASE_URL"].replace("postgres://", "postgresql://", 1)
 JWT_SECRET = os.environ.get("CUSTOMER_JWT_SECRET", "dev-customer-secret")
@@ -31,8 +34,14 @@ Base = declarative_base()
 ph = PasswordHasher()
 
 app = FastAPI(title="baize-customer")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5174", "http://localhost:5173"], # Your Vue dev server URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ── models (subset of the shared schema needed for bookings) ──
 class Branch(Base):

@@ -286,11 +286,12 @@ const clubName = ref('')
 import { customer, signOut, apiGet, apiDelete } from '../auth.js'
 import { formatPhoneDisplay } from '@baize/ui'
 import { qrMatrix, qrSvgPath } from '@baize/ui'
-import BookingItem from '@baize/ui'
-import PoweredByZain from '@baize/ui'
+import {BookingItem} from '@baize/ui'
+import {PoweredByZain} from '@baize/ui'
 // Shared presentation only — BillingReceipt imports nothing but Vue and the QR
 // helper, so reusing it here doesn't pull staff code into the guest bundle.
-import BillingReceipt from '@baize/ui'
+import {BillingReceipt} from '@baize/ui'
+import {useAutoRefresh} from '@baize/ui'
 
 const fullName = computed(() => (customer.profile?.name || 'Guest').trim())
 const displayPhone = computed(() => formatPhoneDisplay(customer.profile?.phone || ''))

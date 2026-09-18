@@ -1,0 +1,8 @@
+fastapi
+pydantic
+sqlalchemy
+PyJWT
+argon2-cffi
+uvicorn
+dotenv
+psycopg2

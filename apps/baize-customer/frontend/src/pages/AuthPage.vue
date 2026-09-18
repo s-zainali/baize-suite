@@ -84,7 +84,20 @@
 
                 <!-- Brand -->
                 <div class="mb-7 text-center">
+                    <div class="flex items-center justify-center flex-col gap-2">
+                        <img src="/baize_logo.png" class="h-20" alt="">
+                        <img src="/baize_logo_text.png" class="w-25" alt="">
+                    </div>
                     
+                    <TableVisual :table="{
+                        uid: 'sample-privatePool',
+                        id: '1',
+                        type: 'privatePool',
+                        isActive: false,
+                        bookingName: '',
+                        players: [],
+                        resumable: false
+                    }"/>
                     <p class="mt-1 text-xs text-slate-500">{{ subtitle }}</p>
                 </div>
 
@@ -286,11 +299,12 @@
 <script setup>
 import { ref, reactive, computed, watch, nextTick, onMounted, onUnmounted, h } from 'vue'
 import { useRouter } from 'vue-router'
-import TextField from '@baize/ui'
-import PasswordField from '@baize/ui'
-import PhoneField from '@baize/ui'
+import {TextField} from '@baize/ui'
+import {PasswordField} from '@baize/ui'
+import {PhoneField} from '@baize/ui'
 import { isValidPhone, maskPhone } from '@baize/ui'
-import PoweredByZain from '@baize/ui'
+import {PoweredByZain} from '@baize/ui'
+import {TableVisual} from '@baize/ui'
 import * as customerApi from '../api.js'
 
 const router = useRouter()

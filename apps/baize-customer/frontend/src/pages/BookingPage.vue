@@ -157,16 +157,16 @@ import { apiGet, apiPost, isSignedIn, customer } from '../auth.js'
 import { formatPhoneDisplay } from '@baize/ui'
 import { usePageBackground } from '@baize/ui'
 import CustomerMenu from '../components/CustomerMenu.vue'
-import DateField from '@baize/ui'
-import DropdownField from '@baize/ui'
-import TimeField from '@baize/ui'
+import {DateField} from '@baize/ui'
+import {DropdownField} from '@baize/ui'
+import {TimeField} from '@baize/ui'
 import {
     toMinutes, toISODate,
     earliestStart, latestStart, earliestEnd, formatDuration, validateRange, overlaps,
     formatTime12,
     latestEnd,
 } from '@baize/ui'
-import PoweredByZain from '@baize/ui'
+import {PoweredByZain} from '@baize/ui'
 import BookingConfirmModal from '../components/BookingConfirmModal.vue'
 
 const sampleTable = (id, type) => ({

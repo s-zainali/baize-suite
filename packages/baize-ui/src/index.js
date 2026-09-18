@@ -2,6 +2,7 @@
 //   import { TableVisual, tableTypeMeta } from '@baize/ui'
 export { default as TableVisual } from './components/TableVisual.vue'
 export * from './composables/tableTypeMeta.js'
+export * from './composables/usePageBackground.js'
 export { default as DateField }     from './components/Fields/DateField.vue'
 export { default as TimeField }     from './components/Fields/TimeField.vue'
 export { default as DropdownField } from './components/Fields/DropdownField.vue'
