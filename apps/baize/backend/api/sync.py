@@ -99,6 +99,18 @@ def collect_changes_batch(entity, since, limit=BATCH_SIZE):
     max_updated = rows[-1].updated_at if rows else None
     return serialized, max_updated
 
+def apply_push(payload):
+    """Apply a pushed batch (cloud side). Parents first (SYNC_SPEC order) so FK
+    targets exist when children resolve them."""
+    if not isinstance(payload, dict):
+        return 0
+    entities = payload.get('entities', {})
+    total = 0
+    for name in PUSH_ENTITIES:
+        rows = entities.get(name)
+        if rows:
+            total += apply_rows(name, rows)
+    return total
 
 def apply_rows(entity, rows):
     """Upsert incoming rows; keyed by sync_id, resolved stable FKs."""
