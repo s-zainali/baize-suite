@@ -461,6 +461,20 @@ def active_branch_license(branch_uid):
     return BranchLicense.query.filter_by(branch_uid=branch_uid).first() if branch_uid else None
 
 
+def active_sync_token():
+    """Retrieve the valid token for cloud sync (checks active License first, 
+    falls back to the first valid active BranchLicense)."""
+    lic = active_license()
+    if lic and lic.token:
+        return lic.token
+    
+    # Branch-only fallback
+    for bl in BranchLicense.query.all():
+        if _branch_valid(bl):
+            return bl.token
+    return None
+
+
 def _branch_heartbeat(bl):
     """Throttled beat for a branch license — detects per-branch revocation and
     adopts a renewed token the server hands back. Fails silently if the server
