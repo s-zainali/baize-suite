@@ -245,6 +245,7 @@ class Booking(SyncMixin, db.Model):
     # A short handle the counter matches against the guest's, since names
     # collide and can't be verified. Six uppercase letters (see
     # generate_booking_code). Indexed for counter lookup.
+    sync_id = db.Column(db.String())
     code = db.Column(db.String(6), nullable=True, index=True)
     table_uid = db.Column(db.String(50), nullable=False)   # which station
     table_type = db.Column(db.String(30), nullable=False)  # denormalized for display

@@ -22,7 +22,7 @@ class Club(Base):
 class Booking(Base):
     __tablename__ = "booking"
     id = Column(Integer, primary_key=True)
-    sync_id = Column(String, default=lambda: str(uuid.uuid4()))
+    sync_id = Column(String)
     club_uid = Column(String)
     branch_uid = Column(String)
     club_uid = Column(String)

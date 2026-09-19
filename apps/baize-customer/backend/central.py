@@ -197,7 +197,9 @@ class LocalCentral(Central):
         booking_code = str(uuid.uuid4())[:6].upper()
 
         # 3. Save to local DB first
+        sync_id = str(uuid.uuid4())
         b = Booking(
+            sync_id = sync_id,
             club_uid=club_uid,
             branch_uid=branch_uid,
             table_type=table_type,
@@ -225,6 +227,7 @@ class LocalCentral(Central):
         target_url = f"{club.public_url.rstrip('/')}/api/customer/bookings"
         print(target_url)
         payload = {
+            "syncId": sync_id,
             "tableUid": table_uid,
             "startTime": start.isoformat(),
             "endTime": end.isoformat(),

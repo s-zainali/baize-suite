@@ -459,7 +459,6 @@ def availability():
         'busy': [{'tableUid': b.table_uid,
                   'startTime': b.start_time.isoformat(),
                   'endTime': b.end_time.isoformat(),
-                  # Their own bookings are labelled; everyone else's are anonymous.
                   } for b in bookings],
     })
 
@@ -515,7 +514,9 @@ def create_booking():
     if clash:
         return jsonify({'error': 'That station is already booked for this time'}), 409
 
+    print(data.get('syncId'), 'ttrt')
     booking = Booking(
+        sync_id=data.get('syncId'),
         branch_id=table.branch_id,   # a booking always belongs to its table's branch
         table_uid=table.uid,
         table_type=table.table_type,
