@@ -152,9 +152,16 @@ def push_once():
     if not SYNC_URL:
         return {'pushed': 0, 'skipped': 'no SYNC_URL'}
     import json, urllib.request
-    from license_util import active_license
+    from license_util import active_license, BranchLicense, _branch_valid
     lic = active_license()
     token = lic.token if lic else None
+
+    if not token:
+        # Fallback to the active BranchLicense token
+        bls = BranchLicense.query.all()
+        valid_bl = next((b for b in bls if _branch_valid(b)), None)
+        if valid_bl:
+            token = valid_bl.token
     payload = {}
     for entity in PUSH_ENTITIES:
         since = _cursor(entity).last_pushed_at
@@ -184,9 +191,15 @@ def pull_once():
     if not SYNC_URL:
         return {'pulled': 0, 'skipped': 'no SYNC_URL'}
     import json, urllib.request, urllib.parse
-    from license_util import active_license
+    from license_util import active_license, BranchLicense, _branch_valid
     lic = active_license()
     token = lic.token if lic else None
+
+    if not token:
+        bls = BranchLicense.query.all()
+        valid_bl = next((b for b in bls if _branch_valid(b)), None)
+        if valid_bl:
+            token = valid_bl.token
     since = min((c for c in (_cursor(e).last_pulled_at for e in PULL_ENTITIES) if c), default=None)
     qs = urllib.parse.urlencode({'entities': ','.join(PULL_ENTITIES),
                                  'since': since.isoformat() if since else ''})
