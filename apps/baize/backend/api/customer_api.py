@@ -535,7 +535,7 @@ def create_booking():
 
 @customer_bp.route('/bookings/<sync_id>', methods=['DELETE'])
 def cancel_booking(sync_id):
-    booking = Booking.query.filter_by(sync_id == sync_id).first()
+    booking = Booking.query.filter_by(sync_id = sync_id).first()
     # Filtering by customer_id in the QUERY, not after fetching, so another
     # guest's booking id simply doesn't exist from here.
     if not booking:
