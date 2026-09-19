@@ -205,10 +205,14 @@ class PasswordResetCode(db.Model):
 
 class GlobalRate(SyncMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    table_type = db.Column(db.String(50), unique=True, nullable=False)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branch.id'), nullable=True, index=True)
+    table_type = db.Column(db.String(50), nullable=False)
     weekday_rate = db.Column(db.Integer, nullable=False, default=0)
     weekend_rate = db.Column(db.Integer, nullable=False, default=0)
 
+    __table_args__ = (
+        db.UniqueConstraint('branch_id', 'table_type', name='uq_branch_table_type'),
+    )
 
 class TableType(db.Model):
     """The single source of truth for station types (label, colour, which card
