@@ -460,7 +460,7 @@ def availability():
                   'startTime': b.start_time.isoformat(),
                   'endTime': b.end_time.isoformat(),
                   # Their own bookings are labelled; everyone else's are anonymous.
-                  'mine': b.customer_id == g.customer.id} for b in bookings],
+                  } for b in bookings],
     })
 
 

@@ -222,7 +222,8 @@ class LocalCentral(Central):
             raise HTTPException(status_code=500, detail=f"Failed to create local booking: {str(e)}")
 
         # 4. Local save was successful — forward to the target node endpoint
-        target_url = f"{club.public_url.rstrip('/')}/customer/bookings"
+        target_url = f"{club.public_url.rstrip('/')}/api/customer/bookings"
+        print(target_url)
         payload = {
             "tableUid": table_uid,
             "startTime": start.isoformat(),
