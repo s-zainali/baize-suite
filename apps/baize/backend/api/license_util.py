@@ -354,7 +354,7 @@ def _verified_token(token):
             issuer=LICENSE_ISSUER,
             options={"verify_exp": False, "require": ["iat", "sub", "club", "sys"]},
         )
-    except jwt.InvalidTokenError:
+    except jwt.InvalidTokenError as e:
         print("JWT DECODE FAILED:", str(e))
         return None
     if DEVICE_BINDING and not _device_ok(claims.get("sys")):
