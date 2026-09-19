@@ -1,62 +1,52 @@
 import { ref, computed } from 'vue'
 import { authFetch, API_URL } from '@/Auth.js'
 
-/**
- * License + branding, shared app-wide (same module-store pattern as useSettings).
- *
- * Two backends are involved:
- *   • the app's own API (API_URL) — reads local license status and stores an
- *     activated token. These run BEFORE staff login (the club gate), so they're
- *     public and use plain fetch.
- *   • the license server (VITE_LICENSE_SERVER_URL) — the club's account: register,
- *     login, enrol this device, list issued licenses.
- *
- * Online activation orchestrates both: sign in to the account, enrol this
- * machine, pull the club's token, and hand it to the app to store & verify.
- */
-
-// The license server's base URL. In dev it defaults to the local server
-// (docker-compose maps it to :8090); in production set VITE_LICENSE_SERVER_URL.
 const LICENSE_SERVER = (import.meta.env.VITE_LICENSE_SERVER_URL
     || (import.meta.env.DEV ? 'http://localhost:8090' : ''))
 const CLUB_TOKEN_KEY = 'baize_club_token'
+const SELECTED_BRANCH_KEY = 'baize_selected_branch'
 
 const branding = ref({ clubName: null, logoUrl: null })
-const status = ref(null)   // { activated, valid, enforced, clubName, expiresAt, daysLeft, ... }
-const account = ref(null)  // license-server account once signed in: { club, devices, licenses }
-const _clubToken0 = localStorage.getItem('baize_club_token') || ''
-const isClubLoggedIn = ref(!!_clubToken0)  // reactive mirror of the stored club session
+export const status = ref(null)   // exported so reactivity is top-level root
+const account = ref(null)
+const isClubLoggedIn = ref(!!localStorage.getItem(CLUB_TOKEN_KEY))
 
 export const clubName = computed(() => branding.value.clubName || 'Baize')
 export const clubLogo = computed(() => branding.value.logoUrl || null)
 export const licenseServerConfigured = !!LICENSE_SERVER
 
-// Gate the app only when the server actually enforces licensing and it's invalid.
-// In dev (ENFORCE_LICENSE off) this stays false, so the app is never gated.
 export const needsActivation = computed(() =>
     !!status.value && status.value.enforced && !status.value.valid)
 
-// Off on cloud/Render builds (DEVICE_BINDING=off) — then activation skips the
-// device-enrolment dance entirely.
 export const deviceBinding = computed(() => status.value?.deviceBinding !== false)
 
-// Licensed add-on modules (base features are always available).
-export const entitlements = computed(() => status.value?.entitlements || [])
-export function hasFeature(key) { return entitlements.value.includes(key) }
+// ── FIX 1: Direct reactive reader for entitlements ────────────────────────────
+export const entitlements = computed(() => {
+    if (!status.value) return []
+    return Array.isArray(status.value.entitlements) ? status.value.entitlements : []
+})
 
-// ── app API (public; run before staff login) ────────────────────────────────
+// ── FIX 2: Check status.value directly so function calls outside templates don't hit cold computed caches
+export function hasFeature(key) {
+    if (!status.value || !Array.isArray(status.value.entitlements)) return false
+    return status.value.entitlements.includes(key)
+}
+
+function _getActiveBranchUid(overrideUid = null) {
+    if (overrideUid) return overrideUid
+    return localStorage.getItem(SELECTED_BRANCH_KEY) || localStorage.getItem('selected_branch_uid') || ''
+}
 
 export async function loadBranding() {
     try {
         const r = await fetch(`${API_URL}/branding`)
         if (r.ok) branding.value = await r.json()
-    } catch { /* offline — keep defaults */ }
+    } catch { /* offline */ }
     return branding.value
 }
 
 export const clubBranches = ref([])
 
-/** List the signed-in club's branches (each carries its own signed token). */
 export async function loadClubBranches() {
     if (!LICENSE_SERVER) return []
     const r = await fetch(`${LICENSE_SERVER}/api/club/branches`, {
@@ -68,8 +58,6 @@ export async function loadClubBranches() {
     return clubBranches.value
 }
 
-/** Activate a chosen branch's licence on THIS install. The signed branch token
- *  is the authorisation, so this works at the pre-login gate. */
 export async function activateBranch(branch) {
     if (!branch || !branch.token) {
         throw new Error("This branch has no licence yet — mint it in the admin portal first.")
@@ -80,14 +68,10 @@ export async function activateBranch(branch) {
     })
     const d = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(d.error || 'Activation failed.')
-    await loadLicense()               // refresh /api/license → the gate lifts
+    await loadLicense(branch.uid)
     return d
 }
 
-/** Re-pull fresh signed tokens for the branches THIS install has activated and
- *  re-store them, so feature changes made in the admin AFTER activation (e.g.
- *  enabling PC or Automated Payments) actually take effect. Online + club-session
- *  only; offline it's a no-op and the stored tokens keep working. */
 export async function syncBranchLicenses() {
     if (!LICENSE_SERVER || !_clubToken()) return false
     let server
@@ -108,15 +92,12 @@ export async function syncBranchLicenses() {
                 body: JSON.stringify({ token: sb.token, name: sb.name }),
             })
             if (res.ok) changed = true
-        } catch { /* offline — keep the stored token */ }
+        } catch { /* offline */ }
     }
     if (changed) await loadLicense()
     return changed
 }
 
-/** Activate EVERY branch the club has onto THIS install — the online / shared-URL
- *  model: one install holds all branch licences, and each browser picks its own
- *  branch from the sidebar (X-Branch is per-browser, so branches run in parallel). */
 export async function activateAllBranches() {
     let list = clubBranches.value
     if (!list.length) { try { list = await loadClubBranches() } catch { return 0 } }
@@ -135,11 +116,21 @@ export async function activateAllBranches() {
     return n
 }
 
-
-export async function loadLicense() {
+// ── FIX 3: Force brand-new object reference assignment to break Vue stale cache ──
+export async function loadLicense(branchUid = null) {
     try {
-        const r = await fetch(`${API_URL}/license`)
-        if (r.ok) status.value = await r.json()
+        const activeBranch = _getActiveBranchUid(branchUid)
+        const headers = {}
+        if (activeBranch) {
+            headers['X-Branch-UID'] = activeBranch
+        }
+
+        const r = await fetch(`${API_URL}/license`, { headers })
+        if (r.ok) {
+            const newStatus = await r.json()
+            // Re-assign a fresh object reference so Vue triggers ALL downstream watchers
+            status.value = { ...newStatus }
+        }
     } catch { /* offline */ }
     return status.value
 }
@@ -154,33 +145,31 @@ export async function fetchDeviceId() {
 async function _apply(res) {
     const data = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(data.error || 'Activation failed.')
-    status.value = data
+    status.value = { ...data }
     await loadBranding()
     return data
 }
 
-/** Offline path: activate from an uploaded .key file. */
 export async function activateToken(tokenFile) {
     const fd = new FormData()
     fd.append('token', tokenFile)
     return _apply(await fetch(`${API_URL}/license/activate`, { method: 'POST', body: fd }))
 }
 
-/** Activate from a raw token string (used by the online account flow). */
 export async function activateTokenString(tokenStr) {
     const fd = new FormData()
     fd.append('token', new Blob([tokenStr], { type: 'text/plain' }), 'license.key')
     return _apply(await fetch(`${API_URL}/license/activate`, { method: 'POST', body: fd }))
 }
 
-// ── license-server account (the club login/register) ─────────────────────────
-
 function _clubToken() { return localStorage.getItem(CLUB_TOKEN_KEY) || '' }
 export function clubLoggedIn() { return !!_clubToken() }
-export function clubLogout() { localStorage.removeItem(CLUB_TOKEN_KEY); account.value = null; isClubLoggedIn.value = false }
+export function clubLogout() {
+    localStorage.removeItem(CLUB_TOKEN_KEY)
+    account.value = null
+    isClubLoggedIn.value = false
+}
 
-// Deactivate the stored license on the backend, clear the local session, and
-// refresh status so the activation gate (sign-in) reappears. Owner-only server-side.
 export async function deactivateLicense() {
     const r = await authFetch(`${API_URL}/license/deactivate`, { method: 'POST' })
     if (!r.ok) throw new Error('Could not deactivate the license.')
@@ -219,21 +208,18 @@ async function clubMe() {
     })
     const d = await r.json().catch(() => ({}))
     if (!r.ok) {
-        if (r.status === 401) clubLogout()   // stale/expired session — reset the gate
+        if (r.status === 401) clubLogout()
         throw new Error(d.error || 'Your session expired — sign in again.')
     }
     return d
 }
 
-/** Refresh the signed-in club's profile + licenses into `account`. */
 export async function loadAccount() {
     account.value = await clubMe()
     return account.value
 }
 
 async function enrollDevice(fingerprint) {
-    // Best-effort: registers this machine on the account so a device-bound
-    // license can be issued for it. A failure here shouldn't block activation.
     try {
         await fetch(`${LICENSE_SERVER}/api/devices`, {
             method: 'POST',
@@ -243,8 +229,6 @@ async function enrollDevice(fingerprint) {
     } catch { /* ignore */ }
 }
 
-/** Register this machine on the account (best-effort; only meaningful when the
- *  install uses device binding). */
 export async function enrollThisDevice() {
     try {
         const fp = await fetchDeviceId()
@@ -252,26 +236,19 @@ export async function enrollThisDevice() {
     } catch { /* non-fatal */ }
 }
 
-/** Apply the account's active license to this install. Returns true if it
- *  activated, false if there's nothing usable yet (no license, or one that
- *  isn't for this device). Throws only on a session/network error, so the UI
- *  can keep waiting instead of dead-ending. */
 export async function tryActivate() {
-    const me = await clubMe()                     // throws (401) if signed out
+    const me = await clubMe()
     account.value = me
     const lic = (me.licenses || []).find((l) => l.status === 'active' && l.token)
     if (!lic) return false
     try { await activateTokenString(lic.token); return true }
-    catch { return false }                        // e.g. bound to another device — keep waiting
+    catch { return false }
 }
 
-/** One-shot: enrol this device (when bound), then attempt activation. */
 export async function activateViaAccount() {
     if (deviceBinding.value) await enrollThisDevice()
     return tryActivate()
 }
-
-// ── owner-only, post-activation ──────────────────────────────────────────────
 
 export async function uploadLogo(file) {
     const fd = new FormData()
@@ -283,25 +260,22 @@ export async function uploadLogo(file) {
     return data
 }
 
-// ── heartbeat (frontend side): re-poll /api/license so a server-side revoke /
-// suspend / renewal surfaces mid-session. The actual server beat happens in the
-// backend (throttled); this just keeps the frontend's status fresh.
-const HEARTBEAT_MS = Number(import.meta.env.VITE_LICENSE_HEARTBEAT_MS) || 300000  // 5 min
+const HEARTBEAT_MS = Number(import.meta.env.VITE_LICENSE_HEARTBEAT_MS) || 300000
 let _hbTimer = null
 
 export const refreshLicense = loadLicense
 
 export function startHeartbeat() {
     stopHeartbeat()
-    _hbTimer = setInterval(loadLicense, HEARTBEAT_MS)
-    window.addEventListener('focus', loadLicense)
-    window.addEventListener('online', loadLicense)
+    _hbTimer = setInterval(() => loadLicense(), HEARTBEAT_MS)
+    window.addEventListener('focus', () => loadLicense())
+    window.addEventListener('online', () => loadLicense())
 }
 
 export function stopHeartbeat() {
     if (_hbTimer) { clearInterval(_hbTimer); _hbTimer = null }
-    window.removeEventListener('focus', loadLicense)
-    window.removeEventListener('online', loadLicense)
+    window.removeEventListener('focus', () => loadLicense())
+    window.removeEventListener('online', () => loadLicense())
 }
 
-export { branding, status, account, isClubLoggedIn }
+export { branding, account, isClubLoggedIn }
