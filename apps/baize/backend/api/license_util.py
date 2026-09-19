@@ -29,6 +29,7 @@ import jwt
 from dotenv import load_dotenv
 
 from models import db, License, Branch, BranchLicense
+from cryptography.hazmat.primitives.serialization import load_pem_public_key
 
 load_dotenv()
 
@@ -41,7 +42,11 @@ _DEFAULT_PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEAyeJP+REYpATlyV+AAd/XEFLLdJicLOjnpEZhegQd7/U=
 -----END PUBLIC KEY-----
 """
-PUBLIC_KEY = (os.environ.get("LICENSE_PUBLIC_KEY") or _DEFAULT_PUBLIC_KEY).strip()
+
+
+# Load your hardcoded keys properly so PyJWT accepts EdDSA
+_DEFAULT_PUBLIC_KEY_OBJ = load_pem_public_key(_DEFAULT_PUBLIC_KEY.encode('utf-8'))
+PUBLIC_KEY = (os.environ.get("LICENSE_PUBLIC_KEY") or _DEFAULT_PUBLIC_KEY_OBJ).strip()
 
 # Keys addressable by the token header's `kid`, so a key can be rotated in later
 # without invalidating tokens signed by the old one. Unknown/absent kid falls
