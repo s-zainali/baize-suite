@@ -148,12 +148,18 @@ def _cursor(entity):
 
 def push_once():
     """Collect everything changed since each entity's push cursor and POST it to
-    the cloud. Advances cursors on the SERVER clock it returns (avoids skew)."""
+    the cloud. Advances cursors on local execution time to prevent clock-skew loops."""
     if not SYNC_URL:
         return {'pushed': 0, 'skipped': 'no SYNC_URL'}
     import json, urllib.request
     from license_util import active_sync_token
     token = active_sync_token()
+    if not token:
+        return {'pushed': 0, 'skipped': 'no token'}
+
+    # Mark local execution timestamp BEFORE collection
+    push_start_time = datetime.now()
+
     payload = {}
     for entity in PUSH_ENTITIES:
         since = _cursor(entity).last_pushed_at
@@ -162,16 +168,20 @@ def push_once():
             payload[entity] = rows
     if not payload:
         return {'pushed': 0}
+        
     body = json.dumps({'entities': payload}).encode()
     req = urllib.request.Request(f"{SYNC_URL}/api/sync/push", data=body, method='POST',
                                  headers={'Content-Type': 'application/json',
                                           'Authorization': f'Bearer {token}'})
-    print(f"DEBUG SYNC TOKEN TRANSMITTING: {token[:15]}... (Length: {len(token) if token else 0})")
     with urllib.request.urlopen(req, timeout=20) as r:
         resp = json.loads(r.read().decode())
-    server_now = _parse(resp.get('serverTime')) or datetime.now()
+    
+    # Use max(serverTime, push_start_time) or push_start_time so last_pushed_at is never behind local row updated_at
+    server_now = _parse(resp.get('serverTime'))
+    cursor_time = max(server_now, push_start_time) if server_now else push_start_time
+
     for entity in payload:
-        _cursor(entity).last_pushed_at = server_now
+        _cursor(entity).last_pushed_at = cursor_time
     db.session.commit()
     return {'pushed': sum(len(v) for v in payload.values())}
 
@@ -188,7 +198,6 @@ def pull_once():
     since = min((c for c in (_cursor(e).last_pulled_at for e in PULL_ENTITIES) if c), default=None)
     qs = urllib.parse.urlencode({'entities': ','.join(PULL_ENTITIES),
                                  'since': since.isoformat() if since else ''})
-    print(f"DEBUG SYNC TOKEN TRANSMITTING: {token[:15]}... (Length: {len(token) if token else 0})")
     req = urllib.request.Request(f"{SYNC_URL}/api/sync/pull?{qs}", method='GET',
                                  headers={'Authorization': f'Bearer {token}'})
     with urllib.request.urlopen(req, timeout=20) as r:

@@ -356,7 +356,6 @@ def _verified_token(token):
     """Signature-valid claims from a token (issuer + device checked), expiry
     ignored (grace decided separately). None on tamper/wrong-device. Shared by
     club AND branch entitlement derivation — the tamper-proof source."""
-    print(f"DEBUG CLOUD RECEIVED TOKEN: {token[:15] if token else 'NONE'} (Length: {len(token) if token else 0})")
     if not token:
         return None
     try:
