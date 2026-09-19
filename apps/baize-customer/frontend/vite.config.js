@@ -12,6 +12,10 @@ export default defineConfig({
     tailwindcss(),
     vueDevTools(),
   ],
+  server: {
+    host: '0.0.0.0', // Exposes the app to the local network
+    port: 5174,      // You can specify a fixed port if you want
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

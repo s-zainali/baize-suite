@@ -26,7 +26,8 @@ if db_url:
     config.set_main_option("sqlalchemy.url", db_url)
 
 # Import Base from main.py where models are defined
-from main import Base
+from database import Base
+import models
 
 target_metadata = Base.metadata
 

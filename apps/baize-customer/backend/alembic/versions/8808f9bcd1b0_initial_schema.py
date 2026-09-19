@@ -1,8 +1,8 @@
-"""create_customer_table
+"""initial_schema
 
-Revision ID: 006925649e97
+Revision ID: 8808f9bcd1b0
 Revises: 
-Create Date: 2026-09-18 17:17:24.444071
+Create Date: 2026-09-19 18:14:12.278345
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '006925649e97'
+revision: str = '8808f9bcd1b0'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -51,6 +51,24 @@ def upgrade() -> None:
     sa.Column('deleted_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('club',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('uuid', sa.String(length=40), nullable=False),
+    sa.Column('email', sa.String(length=150), nullable=False),
+    sa.Column('password_hash', sa.String(length=255), nullable=False),
+    sa.Column('club_name', sa.String(length=120), nullable=False),
+    sa.Column('owner_name', sa.String(length=120), nullable=True),
+    sa.Column('phone', sa.String(length=40), nullable=True),
+    sa.Column('address', sa.String(length=255), nullable=True),
+    sa.Column('city', sa.String(length=80), nullable=True),
+    sa.Column('country', sa.String(length=80), nullable=True),
+    sa.Column('notes', sa.String(), nullable=True),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_club_email'), 'club', ['email'], unique=True)
+    op.create_index(op.f('ix_club_uuid'), 'club', ['uuid'], unique=True)
     op.create_table('customer',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('sync_id', sa.String(), nullable=True),
@@ -63,6 +81,15 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_customer_phone'), 'customer', ['phone'], unique=False)
+    op.create_table('customer_favourite',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('customer_id', sa.Integer(), nullable=True),
+    sa.Column('club_uid', sa.String(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_customer_favourite_club_uid'), 'customer_favourite', ['club_uid'], unique=False)
+    op.create_index(op.f('ix_customer_favourite_customer_id'), 'customer_favourite', ['customer_id'], unique=False)
     op.create_table('global_rate',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('table_type', sa.String(), nullable=True),
@@ -117,8 +144,14 @@ def downgrade() -> None:
     op.drop_table('pool_table')
     op.drop_table('lounge')
     op.drop_table('global_rate')
+    op.drop_index(op.f('ix_customer_favourite_customer_id'), table_name='customer_favourite')
+    op.drop_index(op.f('ix_customer_favourite_club_uid'), table_name='customer_favourite')
+    op.drop_table('customer_favourite')
     op.drop_index(op.f('ix_customer_phone'), table_name='customer')
     op.drop_table('customer')
+    op.drop_index(op.f('ix_club_uuid'), table_name='club')
+    op.drop_index(op.f('ix_club_email'), table_name='club')
+    op.drop_table('club')
     op.drop_table('branch')
     op.drop_table('booking')
     # ### end Alembic commands ###

@@ -5,6 +5,19 @@ import datetime as dt
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from database import Base
 
+class Club(Base):
+    __tablename__ = "club"
+
+    id = Column(Integer, primary_key=True)
+    uuid = Column(String(40), unique=True, nullable=False, index=True)  # token `sub` / tenant key
+    club_name = Column(String(120), nullable=False)
+    public_url = Column(String(), default="")
+    address = Column(String(255), default="")
+    city = Column(String(80), default="")
+    country = Column(String(80), default="")
+    notes = Column(String, default="")
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
 
 class Branch(Base):
     __tablename__ = "branch"
