@@ -1,8 +1,8 @@
 """
 Sync Phase 3 — engine + push (local → cloud) with CHUNKED BATCHING.
 
-Handles massive local seed data gracefully by chunking HTTP POST payloads,
-preventing socket write timeouts and high-memory serialization spikes.
+Handles local-to-cloud data pushes in controlled chunks to prevent HTTP write
+timeouts over large datasets, while maintaining support for cloud-side apply_push.
 """
 import os
 import json
@@ -50,7 +50,7 @@ PUSH_ENTITIES = [name for name, Model, _ in SYNC_SPEC if Model is not None]
 PULL_ENTITIES = ['booking']
 
 # In-memory sync health metrics
-MAX_BACKOFF = 300  # 5 min backoff cap
+MAX_BACKOFF = 300
 HEALTH = {'last_ok_at': None, 'last_push_at': None, 'last_pull_at': None,
           'last_error': None, 'consecutive_failures': 0}
 
@@ -95,22 +95,18 @@ def collect_changes_batch(entity, since, limit=BATCH_SIZE):
     
     rows = q.order_by(Model.updated_at.asc()).limit(limit).all()
     serialized = [serialize(o, fks) for o in rows]
-    # Keep track of the maximum updated_at timestamp in this batch
     max_updated = rows[-1].updated_at if rows else None
     return serialized, max_updated
 
-def apply_push(payload):
-    """Apply a pushed batch (cloud side). Parents first (SYNC_SPEC order) so FK
-    targets exist when children resolve them."""
-    if not isinstance(payload, dict):
-        return 0
-    entities = payload.get('entities', {})
-    total = 0
-    for name in PUSH_ENTITIES:
-        rows = entities.get(name)
-        if rows:
-            total += apply_rows(name, rows)
-    return total
+
+def collect_changes(entity, since):
+    """Legacy helper for full collection."""
+    Model, fks = SPEC_BY_NAME[entity]
+    q = Model.query
+    if since is not None:
+        q = q.filter(Model.updated_at > since)
+    return [serialize(o, fks) for o in q.order_by(Model.updated_at.asc()).all()]
+
 
 def apply_rows(entity, rows):
     """Upsert incoming rows; keyed by sync_id, resolved stable FKs."""
@@ -162,6 +158,30 @@ def apply_rows(entity, rows):
     return applied
 
 
+def apply_push(payload):
+    """CLOUD SERVER ENTRY POINT: Applies pushed batches sent by local instances."""
+    if not isinstance(payload, dict):
+        return 0
+    entities = payload.get('entities', {})
+    total = 0
+    for name in PUSH_ENTITIES:
+        rows = entities.get(name)
+        if rows:
+            total += apply_rows(name, rows)
+    return total
+
+
+def collect_pull(entities, since):
+    """CLOUD SERVER ENTRY POINT: Collects entities for client pull requests."""
+    out = {}
+    for name in entities:
+        if name in PULL_ENTITIES and name in SPEC_BY_NAME:
+            rows = collect_changes(name, since)
+            if rows:
+                out[name] = rows
+    return out
+
+
 def _cursor(entity):
     c = db.session.get(SyncCursor, entity)
     if c is None:
@@ -172,7 +192,7 @@ def _cursor(entity):
 
 
 def push_once():
-    """Iteratively pushes entity updates in BATCH_SIZE chunks, clearing failure flags immediately."""
+    """Iteratively pushes entity updates in BATCH_SIZE chunks."""
     if not SYNC_URL:
         return {'pushed': 0, 'skipped': 'no SYNC_URL'}
     from license_util import active_sync_token
@@ -202,16 +222,13 @@ def push_once():
             with urllib.request.urlopen(req, timeout=30) as r:
                 resp = json.loads(r.read().decode())
 
-            # Advance cursor for this batch
             if max_updated:
                 cursor.last_pushed_at = max_updated
                 db.session.commit()
 
             total_pushed += len(rows)
 
-            # --- KEY FIX FOR THE AMBER INDICATOR ---
-            # As soon as a single HTTP request succeeds, mark health as OK so status.online becomes True.
-            # With pending > 0, SyncIndicator.vue will render Amber ("Syncing").
+            # Reset error metrics immediately after first successful chunk
             HEALTH['consecutive_failures'] = 0
             HEALTH['last_error'] = None
             HEALTH['last_ok_at'] = datetime.now()
@@ -221,8 +238,9 @@ def push_once():
 
     return {'pushed': total_pushed}
 
+
 def pull_once():
-    """Pulls cloud-authoritative records and updates local models."""
+    """Pulls cloud changes locally."""
     if not SYNC_URL:
         return {'pulled': 0, 'skipped': 'no SYNC_URL'}
     from license_util import active_sync_token
@@ -263,7 +281,7 @@ def pending_counts():
 
 
 def sync_status():
-    """Status snapshot for the frontend UI health monitor."""
+    """Status snapshot for frontend."""
     from tenancy import IS_HYBRID, IS_CLOUD
     mode = 'cloud' if IS_CLOUD else ('hybrid' if IS_HYBRID else 'local')
     active = bool(IS_HYBRID and SYNC_URL)
@@ -287,7 +305,7 @@ def sync_status():
 
 
 def start_sync_worker(app, interval=10):
-    """Background loop pushing chunks in sequence."""
+    """Background worker loop."""
     from tenancy import IS_HYBRID
     if not (IS_HYBRID and SYNC_URL):
         return
@@ -305,35 +323,6 @@ def start_sync_worker(app, interval=10):
                     HEALTH['last_pull_at'] = datetime.now()
 
                 HEALTH.update(last_ok_at=datetime.now(), last_error=None, consecutive_failures=0)
-                
-                # If there are still items left in the queue, run immediately (2s delay) to drain fast
-                delay = 2 if res.get('pushed', 0) > 0 else interval
-            except Exception as e:
-                HEALTH['consecutive_failures'] += 1
-                HEALTH['last_error'] = str(e)[:200]
-                delay = min(interval * (2 ** HEALTH['consecutive_failures']), MAX_BACKOFF)
-
-    threading.Thread(target=_loop, daemon=True, name='baize-sync').start()
-    """Background loop pushing chunks in sequence."""
-    from tenancy import IS_HYBRID
-    if not (IS_HYBRID and SYNC_URL):
-        return
-    import threading, time as _t
-
-    def _loop():
-        delay = interval
-        while True:
-            _t.sleep(delay)
-            try:
-                with app.app_context():
-                    res = push_once()
-                    HEALTH['last_push_at'] = datetime.now()
-                    pull_once()
-                    HEALTH['last_pull_at'] = datetime.now()
-
-                HEALTH.update(last_ok_at=datetime.now(), last_error=None, consecutive_failures=0)
-                
-                # If we pushed a full batch, run immediately without sleeping long to drain the queue
                 delay = 2 if res.get('pushed', 0) > 0 else interval
             except Exception as e:
                 HEALTH['consecutive_failures'] += 1
