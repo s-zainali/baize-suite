@@ -6,3 +6,4 @@ argon2-cffi
 uvicorn
 dotenv
 psycopg2
+httpx

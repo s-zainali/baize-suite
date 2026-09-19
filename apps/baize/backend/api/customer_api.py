@@ -404,7 +404,6 @@ def _parse_date(value):
 
 
 @customer_bp.route('/availability', methods=['GET'])
-@require_customer
 def availability():
     """Stations plus the busy ranges for one day.
 

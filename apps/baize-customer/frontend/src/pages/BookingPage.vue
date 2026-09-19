@@ -39,9 +39,14 @@
                         <p class="truncate text-sm font-bold text-white">{{ customer.profile?.name }}</p>
                         <p class="truncate font-mono text-[10px] text-slate-500">{{ myPhone }}</p>
                     </div>
+                    <div class="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2.5">
+                        <span class="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                            Club</span>
+                        <p class="truncate text-sm font-bold text-white"></p>
+                    </div>
 
-                    <DropdownField v-if="state.branches.length > 1" :form="form" :field="'branch'"
-                        :options="branchOptions" :label="'Branch'" :placeholder="'Select a branch'" />
+                    <DropdownField :form="form" :field="'branch'" :options="branchOptions" :label="'Branch'"
+                        :placeholder="'Select a branch'" />
 
                     <div>
                         <label class="text-[10px] uppercase font-black tracking-widest text-slate-300 block mb-1.5">
@@ -108,6 +113,7 @@
                     <p class="text-sm font-bold text-slate-300">Select a branch to see its stations</p>
                     <p class="text-xs text-slate-500 mt-1">Choose a location on the left to start a booking.</p>
                 </div>
+                <!-- <TableVisual :table="" :is-display="true"/> -->
                 <div v-for="lounge in state.lounges" :key="lounge.uid"
                     class="bg-slate-950/40 border border-slate-700 rounded-2xl p-4">
                     <span class="text-sm font-black text-white block mb-3">{{ lounge.name }}</span>
@@ -118,16 +124,17 @@
                             class="rounded-xl border p-3 text-left transition-all shrink-0 flex flex-col items-center justify-center h-[245px]"
                             :class="tileClass(t), isBooked(t.uid) ? 'cursor-default' : 'cursor-pointer'">
                             <div class="flex h-full items-center">
-                                <component :is="componentFor(t.type)" :table="t" :showBookingStatus="false"
-                                    :current-rate="t.currentRate" :is-display="true" :slot-booked="isBooked(t.uid)"
-                                    :bookings="state.bookings" />
+                                <TableVisual :table="t" :showBookingStatus="false" :current-rate="t.currentRate"
+                                    :is-display="true" :slot-booked="isBooked(t.uid)" :bookings="state.bookings" />
                             </div>
                             <div class="mt-2">
                                 <p v-if="isBooked(t.uid)"
                                     class="max-w-[90px] text-wrap text-[8px] font-bold text-amber-500 leading-tight whitespace-nowrap text-center z-30 tracking-widest">
                                     {{ clashLabel(t.uid) }}
                                 </p>
-                                <div v-else-if="t.uid === selectedTable?.uid" class="max-w-[90px] text-wrap text-[10px] font-bold text-emerald-100 bg-emerald-600 px-3 rounded-sm -my-1 py-1 leading-tight whitespace-nowrap text-center z-30 uppercase tracking-widest">Selected
+                                <div v-else-if="t.uid === selectedTable?.uid"
+                                    class="max-w-[90px] text-wrap text-[10px] font-bold text-emerald-100 bg-emerald-600 px-3 rounded-sm -my-1 py-1 leading-tight whitespace-nowrap text-center z-30 uppercase tracking-widest">
+                                    Selected
                                 </div>
                                 <div v-else-if="t.isActive"
                                     class="max-w-[90px] text-wrap text-[10px] font-bold text-rose-400 leading-tight whitespace-nowrap text-center z-30 uppercase tracking-widest">
@@ -158,37 +165,24 @@ import { apiGet, apiPost, isSignedIn, customer } from '../auth.js'
 import { formatPhoneDisplay } from '@baize/ui'
 import { usePageBackground } from '@baize/ui'
 import CustomerMenu from '../components/CustomerMenu.vue'
-import {DateField} from '@baize/ui'
-import {DropdownField} from '@baize/ui'
-import {TimeField} from '@baize/ui'
+import { DateField } from '@baize/ui'
+import { DropdownField } from '@baize/ui'
+import { TimeField } from '@baize/ui'
 import {
     toMinutes, toISODate,
     earliestStart, latestStart, earliestEnd, formatDuration, validateRange, overlaps,
     formatTime12,
     latestEnd,
 } from '@baize/ui'
-import {PoweredByZain} from '@baize/ui'
+import { PoweredByZain } from '@baize/ui'
 import BookingConfirmModal from '../components/BookingConfirmModal.vue'
-
-const sampleTable = (id, type) => ({
-    "bookingName": "",
-    "id": id,
-    "isActive": false,
-    "loungeId": 0,
-    "pendingTotal": 0,
-    "players": [],
-    "priorSeconds": 0,
-    "resumable": false,
-    "sessionId": null,
-    "startTime": null,
-    "type": type,
-    "uid": "snooker-0"
-})
+import { TableVisual } from '@baize/ui'
+import { fetchAvailability } from '@/api.js'
 
 usePageBackground('#0f172a')
 const router = useRouter()
 const route = useRoute()
-const clubUid = computed(() => route.query.club || '')
+const clubUid = computed(() => route.query.clubId || '')
 const myPhone = computed(() => formatPhoneDisplay(customer.profile?.phone || ''))
 
 const state = ref({ tables: [], lounges: [], bookings: [], branches: [] })
@@ -238,21 +232,28 @@ watch(() => [form.date, form.startTime], reconcileTimes, { immediate: true })
 
 let poll
 async function fetchState() {
+    if (!clubUid.value) return
+    console.log(clubUid.value)
+    console.log(form.date)
+
     try {
-        // Availability for the selected day only, and it carries no other
-        // guest's name or number — just which ranges are taken.
-        const cq = clubUid.value ? `&club=${encodeURIComponent(clubUid.value)}` : ''
-        const bq = form.branch ? `&branch=${encodeURIComponent(form.branch)}` : ''
-        const data = await apiGet(`/availability?date=${form.date}${cq}${bq}`)
-        // Adopt the server's chosen branch (e.g. single-branch clubs) so the
-        // selector reflects what's actually being shown.
+        // Pass club_uid so backend can look up Club.public_url
+        const data = fetchAvailability({
+            date : form.date, 
+            clubUid : clubUid.value
+        })
+
         if (!form.branch && data.selectedBranch) form.branch = data.selectedBranch
+
         state.value = {
             tables: data.tables || [],
             lounges: data.lounges || [],
             branches: data.branches || [],
             bookings: (data.busy || []).map(b => ({
-                tableUid: b.tableUid, startTime: b.startTime, endTime: b.endTime, mine: b.mine,
+                tableUid: b.tableUid,
+                startTime: b.startTime,
+                endTime: b.endTime,
+                mine: b.mine,
             })),
         }
     } catch (_) { /* transient: the poll will retry */ }
@@ -336,7 +337,7 @@ function selectTable(t) {
     else {
         state.value.lounges
             .forEach(lounge => loungeTables(lounge.uid)
-                .forEach(table => table === selectedTable.value? table.isActive = false: ''))
+                .forEach(table => table === selectedTable.value ? table.isActive = false : ''))
         selectedTable.value = t
         selectedTable.value.isActive = true
         error.value = ''

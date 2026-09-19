@@ -5,19 +5,18 @@ from standalone to the central network is a one-line config change.
 
   • No CENTRAL_API_URL  → LocalCentral  (reads the local shared DB — standalone)
   • CENTRAL_API_URL set → HttpCentral   (calls the baize central API)
-
-To go live on central: fill in HttpCentral's request bodies (each method already
-names its endpoint) and set CENTRAL_API_URL. Nothing else changes.
 """
 from __future__ import annotations
 import datetime as dt
+import uuid
 from abc import ABC, abstractmethod
 from typing import Optional
-from sqlalchemy import or_
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
+import httpx
 
 import config
-from models import Branch, Lounge, PoolTable, GlobalRate, Booking, TableType
+from models import Booking, Club
 
 
 class Central(ABC):
@@ -32,8 +31,7 @@ class Central(ABC):
     def table_types(self, db: Session) -> list: ...
 
     @abstractmethod
-    def availability(self, db: Session, date: dt.date, club_uid: Optional[str],
-                     branch_uid: Optional[str]) -> dict: ...
+    def availability(self, db: Session, date: dt.date, club_uid: Optional[str]) -> dict: ...
 
     @abstractmethod
     def create_booking(self, db: Session, table_uid: str, start: dt.datetime,
@@ -49,110 +47,172 @@ class Central(ABC):
 class LocalCentral(Central):
     """Standalone: everything comes from the local shared DB."""
 
-    def _clubs_query(self, db):
-        q = db.query(Branch).filter(Branch.deleted_at.is_(None))
-        return q.filter(Branch.club_uid == config.CLUB_UID) if config.CLUB_UID else q
-
-    def list_clubs(self, db, query=None, near=None, fav_uids=None):
+    def list_clubs(self, db: Session, query: Optional[str] = None, 
+                   near: Optional[str] = None, fav_uids: Optional[set] = None) -> list:
         fav_uids = fav_uids or set()
-        by_club: dict[str, list[Branch]] = {}
-        for b in self._clubs_query(db).all():
-            by_club.setdefault(b.club_uid, []).append(b)
+        
+        # Always query all active clubs regardless of config.CLUB_UID
+        clubs = db.query(Club).filter(Club.is_active.is_(True)).all()
+            
         out = []
-        for club_uid, branches in by_club.items():
-            if not club_uid:
-                continue
-            # derive a display name from the branches' common prefix ("Z Snooker - Branch 1")
-            name = (branches[0].name or "Club").split(" - ")[0].strip() or f"Club {club_uid[:6]}"
-            city = next((b.address.split(",")[-1].strip() for b in branches if b.address), None)
-            if query and query.lower() not in f"{name} {city or ''}".lower():
-                continue
-            out.append({"uid": club_uid, "name": name, "city": city,
-                        "branches": len(branches), "favourite": club_uid in fav_uids})
-        # near-you needs coordinates (central will supply them); locally just sort by name.
-        return sorted(out, key=lambda c: c["name"].lower())
+        for c in clubs:
+            name = c.club_name
+            city = c.city or ""
+            address = c.address or ""
 
-    def table_types(self, db):
-        return [{"key": t.key, "id": t.key, "value": t.key, "label": t.label, "color": t.color,
-                 "renderer": t.renderer, "badge": t.badge, "sortOrder": t.sort_order}
-                for t in db.query(TableType).order_by(TableType.sort_order).all()]
+            # Case-insensitive search filter
+            if query:
+                q_clean = query.strip().lower()
+                target_str = f"{name} {city} {address}".lower()
+                if q_clean not in target_str:
+                    continue
 
-    def availability(self, db, date, club_uid, branch_uid):
-        start = dt.datetime.combine(date, dt.time.min); end = start + dt.timedelta(days=1)
-        weekend = date.weekday() >= 5
-        bq = db.query(Branch).filter(Branch.deleted_at.is_(None))
-        if club_uid:  bq = bq.filter(Branch.club_uid == club_uid)
-        elif config.CLUB_UID: bq = bq.filter(Branch.club_uid == config.CLUB_UID)
-        branches = bq.order_by(Branch.id).all()
-        chosen = next((b for b in branches if b.uid == branch_uid), None) \
-            or (branches[0] if len(branches) == 1 else None)
-        base = {"date": date.isoformat(),
-                "branches": [{"uid": b.uid, "name": b.name} for b in branches],
-                "selectedBranch": chosen.uid if chosen else None,
-                "lounges": [], "tables": [], "busy": []}
-        if not chosen:
-            return base
-        lounges = db.query(Lounge).filter(Lounge.status != "deleted", Lounge.branch_id == chosen.id).all()
-        tables = db.query(PoolTable).filter(PoolTable.status != "deleted", PoolTable.branch_id == chosen.id)\
-            .order_by(PoolTable.sort_order).all()
-        rates = {r.table_type: r for r in db.query(GlobalRate).filter(
-            or_(GlobalRate.branch_id == chosen.id, GlobalRate.branch_id.is_(None))).all()}
-        busy = db.query(Booking).filter(Booking.branch_id == chosen.id,
-                                        Booking.status.in_(["booked", "active"]),
-                                        Booking.start_time < end, Booking.end_time > start,
-                                        Booking.deleted_at.is_(None)).all()
-        def rate(tt):
-            r = rates.get(tt); return (r.weekend_rate if weekend else r.weekday_rate) if r else 0
-        base.update({
-            "lounges": [{"uid": lo.uid, "name": lo.name} for lo in lounges],
-            "tables": [{"uid": t.uid, "id": t.table_id, "type": t.table_type, "loungeUid": t.lounge_uid,
-                        "isActive": bool(t.is_active), "currentRate": rate(t.table_type)} for t in tables],
-            "busy": [{"tableUid": b.table_uid, "startTime": b.start_time.isoformat(),
-                      "endTime": b.end_time.isoformat()} for b in busy],
-        })
-        return base
+            # Near / location filter
+            if near:
+                near_clean = near.strip().lower()
+                target_loc = f"{city} {address}".lower()
+                if near_clean not in target_loc:
+                    continue
 
-    def create_booking(self, db, table_uid, start, end, customer):
-        import uuid
-        from fastapi import HTTPException
-        table = db.query(PoolTable).filter(PoolTable.uid == table_uid, PoolTable.status != "deleted").first()
-        if not table:
-            raise HTTPException(404, "That table doesn't exist.")
-        clash = db.query(Booking).filter(Booking.table_uid == table.uid,
-                                         Booking.status.in_(["booked", "active"]),
-                                         Booking.start_time < end, Booking.end_time > start,
-                                         Booking.deleted_at.is_(None)).first()
+            out.append({
+                "uid": c.uuid,
+                "name": name,
+                "city": city,
+                "address": address,
+                "branches": 1,
+                "favourite": c.uuid in fav_uids
+            })
+            
+        return sorted(out, key=lambda x: x["name"].lower())
+
+    def table_types(self, db: Session) -> list:
+        return []
+
+    def availability(self, db: Session, date: dt.date, club_uid: Optional[str]) -> dict:
+        target_club_uid = club_uid or config.CLUB_UID
+        if not target_club_uid:
+            raise HTTPException(status_code=400, detail="A valid club_uid is required.")
+
+        club = db.query(Club).filter(Club.uuid == target_club_uid).first()
+        if not club:
+            raise HTTPException(status_code=404, detail="Club not found.")
+
+        # If public_url is configured on the club, proxy to remote node
+        public_url = getattr(club, "public_url", None)
+        if public_url:
+            return self._fetch_remote_availability(public_url, date)
+
+        # Standalone / Local DB fallback
+        start = dt.datetime.combine(date, dt.time.min)
+        end = start + dt.timedelta(days=1)
+
+        busy = db.query(Booking).filter(
+            Booking.status.in_(["booked", "active"]),
+            Booking.start_time < end,
+            Booking.end_time > start,
+            Booking.deleted_at.is_(None),
+            Booking.club_uid == target_club_uid
+        ).all()
+
+        return {
+            "date": date.isoformat(),
+            "branches": [],
+            "selectedBranch": branch_uid,
+            "lounges": [],
+            "tables": [],
+            "busy": [{
+                "tableUid": b.table_uid,
+                "startTime": b.start_time.isoformat(),
+                "endTime": b.end_time.isoformat()
+            } for b in busy]
+        }
+
+    def _fetch_remote_availability(self, public_url: str, date: dt.date) -> dict:
+        base_url = public_url.rstrip("/")
+        url = f"{base_url}/api/availability"
+        params = {"date": date.isoformat()}
+
+        try:
+            with httpx.Client(timeout=5.0) as client:
+                res = client.get(url, params=params)
+                if res.status_code != 200:
+                    raise HTTPException(status_code=res.status_code, detail=f"Club node error: {res.text}")
+                return res.json()
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=502, detail=f"Could not reach club node at {public_url}: {str(e)}")
+        
+        
+    def create_booking(self, db: Session, table_uid: str, start: dt.datetime, end: dt.datetime, customer) -> dict:
+        clash = db.query(Booking).filter(
+            Booking.table_uid == table_uid,
+            Booking.status.in_(["booked", "active"]),
+            Booking.start_time < end,
+            Booking.end_time > start,
+            Booking.deleted_at.is_(None)
+        ).first()
+
         if clash:
             raise HTTPException(409, "That slot was just taken.")
-        b = Booking(branch_id=table.branch_id, club_uid=table.club_uid, table_uid=table.uid,
-                    table_type=table.table_type, guest_name=customer.name, phone=customer.phone,
-                    start_time=start, end_time=end, status="booked", customer_id=customer.id,
-                    code=str(uuid.uuid4())[:6].upper())
-        db.add(b); db.commit()
-        return {"ok": True, "code": b.code,
-                "booking": {"tableUid": b.table_uid, "startTime": start.isoformat(), "endTime": end.isoformat()}}
 
-    def my_bookings(self, db, customer):
-        rows = db.query(Booking).filter(Booking.customer_id == customer.id,
-                                        Booking.deleted_at.is_(None)).order_by(Booking.start_time).all()
-        return [{"id": b.id, "code": b.code, "tableUid": b.table_uid, "tableType": b.table_type,
-                 "tableNumber": b.table_number, "startTime": b.start_time.isoformat(),
-                 "endTime": b.end_time.isoformat(), "status": b.status} for b in rows]
+        b = Booking(
+            club_uid=config.CLUB_UID,
+            table_uid=table_uid,
+            guest_name=customer.name,
+            phone=customer.phone,
+            start_time=start,
+            end_time=end,
+            status="booked",
+            customer_id=customer.id,
+            code=str(uuid.uuid4())[:6].upper()
+        )
+        db.add(b)
+        db.commit()
 
-    def cancel_booking(self, db, customer, booking_id):
-        import datetime as _dt
-        from fastapi import HTTPException
-        b = db.query(Booking).filter(Booking.id == booking_id, Booking.customer_id == customer.id).first()
+        return {
+            "ok": True,
+            "code": b.code,
+            "booking": {
+                "tableUid": b.table_uid,
+                "startTime": start.isoformat(),
+                "endTime": end.isoformat()
+            }
+        }
+
+    def my_bookings(self, db: Session, customer) -> list:
+        rows = db.query(Booking).filter(
+            Booking.customer_id == customer.id,
+            Booking.deleted_at.is_(None)
+        ).order_by(Booking.start_time).all()
+
+        return [{
+            "id": b.id,
+            "code": b.code,
+            "tableUid": b.table_uid,
+            "tableType": b.table_type,
+            "tableNumber": b.table_number,
+            "startTime": b.start_time.isoformat(),
+            "endTime": b.end_time.isoformat(),
+            "status": b.status
+        } for b in rows]
+
+    def cancel_booking(self, db: Session, customer, booking_id: int) -> dict:
+        b = db.query(Booking).filter(
+            Booking.id == booking_id,
+            Booking.customer_id == customer.id
+        ).first()
+
         if not b:
             raise HTTPException(404, "No such booking.")
-        b.deleted_at = _dt.datetime.utcnow(); b.status = "cancelled"; db.commit()
+
+        b.deleted_at = dt.datetime.utcnow()
+        b.status = "cancelled"
+        db.commit()
+
         return {"ok": True}
 
 
 class HttpCentral(Central):
-    """Future: the baize central API is the source of truth. Each method maps to
-    a central endpoint — fill in the request/response mapping when central ships.
-    The DB session is ignored here (central owns the data)."""
+    """Future: the baize central API is the source of truth."""
 
     def __init__(self, base_url: str, api_key: Optional[str]):
         self.base = base_url.rstrip("/")
@@ -161,28 +221,22 @@ class HttpCentral(Central):
     def _headers(self):
         return {"Authorization": f"Bearer {self.key}"} if self.key else {}
 
-    def list_clubs(self, db, query=None, near=None, fav_uids=None):
-        # GET {base}/clubs?q=<query>&near=<lat,lng>   → [{uid,name,city,branches}]
+    def list_clubs(self, db: Session, query: Optional[str] = None, near: Optional[str] = None, fav_uids: Optional[set] = None) -> list:
         raise NotImplementedError("central: GET /clubs")
 
-    def table_types(self, db):
-        # GET {base}/clubs/{club}/table-types
+    def table_types(self, db: Session) -> list:
         raise NotImplementedError("central: GET /table-types")
 
-    def availability(self, db, date, club_uid, branch_uid):
-        # GET {base}/clubs/{club}/branches/{branch}/availability?date=
+    def availability(self, db: Session, date: dt.date, club_uid: Optional[str], branch_uid: Optional[str]) -> dict:
         raise NotImplementedError("central: GET /availability")
 
-    def create_booking(self, db, table_uid, start, end, customer):
-        # POST {base}/bookings  { tableUid, startTime, endTime, customer }
+    def create_booking(self, db: Session, table_uid: str, start: dt.datetime, end: dt.datetime, customer) -> dict:
         raise NotImplementedError("central: POST /bookings")
 
-    def my_bookings(self, db, customer):
-        # GET {base}/customers/{id}/bookings
+    def my_bookings(self, db: Session, customer) -> list:
         raise NotImplementedError("central: GET /bookings")
 
-    def cancel_booking(self, db, customer, booking_id):
-        # DELETE {base}/bookings/{id}
+    def cancel_booking(self, db: Session, customer, booking_id: int) -> dict:
         raise NotImplementedError("central: DELETE /bookings/{id}")
 
 

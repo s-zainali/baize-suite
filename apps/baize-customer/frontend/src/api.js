@@ -1,7 +1,5 @@
-// Customer API client. Thin on purpose — validation and policy live on the
-// server; this only shapes requests and hands back what the UI renders.
-
-import { apiPost, setSession } from './auth.js'
+// api.js
+import { apiGet, apiPost, apiDelete, setSession } from './auth.js'
 
 export async function signUp({ name, phone, email, password }) {
     const data = await apiPost('/register', { name, phone, email, password })
@@ -23,3 +21,17 @@ export const verifyCode = ({ phone, code }) => apiPost('/password/verify', { pho
 
 export const resetPassword = ({ resetToken, password }) =>
     apiPost('/password/reset', { resetToken, password })
+
+// ── NEW: Club Discovery & Booking Central Endpoints ──
+export const fetchClubs = ({ query = '', near = '' } = {}) => 
+    apiGet(`/clubs?query=${encodeURIComponent(query)}&near=${encodeURIComponent(near)}`)
+
+export const fetchAvailability = ({ date, clubUid }) => {
+    if (!clubUid) throw new Error('clubUid is required')
+    return apiGet(`/clubs/${encodeURIComponent(clubUid)}/availability?date=${date}`)
+}
+export const createBooking = ({ tableUid, startTime, endTime }) =>
+    apiPost('/bookings', { tableUid, startTime, endTime })
+
+export const cancelBooking = (bookingId) =>
+    apiDelete(`/bookings/${bookingId}`)

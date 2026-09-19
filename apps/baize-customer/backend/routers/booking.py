@@ -16,9 +16,9 @@ def table_types(s: Session = Depends(get_db)):
 
 @router.get("/availability")
 def availability(date: Optional[str] = None, club: Optional[str] = None,
-                 branch: Optional[str] = None, s: Session = Depends(get_db)):
+                 s: Session = Depends(get_db)):
     day = dt.date.fromisoformat(date) if date else dt.date.today()
-    return central.availability(s, day, club, branch)
+    return central.availability(s, day, club)
 
 @router.post("/bookings")
 def create_booking(body: BookingIn, c: Customer = Depends(current_customer), s: Session = Depends(get_db)):

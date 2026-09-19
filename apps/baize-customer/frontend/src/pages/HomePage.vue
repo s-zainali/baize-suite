@@ -25,13 +25,6 @@
           </div>
   
           <div class="order-3 flex items-center justify-end gap-2">
-            <button 
-              @click="activeTab = activeTab === 'dashboard' ? 'clubs' : 'dashboard'"
-              class="group cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 px-3.5 py-2 text-[10px] font-black uppercase tracking-widest text-slate-300 transition-all hover:border-emerald-500/50 hover:bg-slate-800 hover:text-emerald-400"
-            >
-              <span v-if="activeTab === 'dashboard'">Find Clubs</span>
-              <span v-else>My Dashboard</span>
-            </button>
             
             <button 
               @click="signOut()"
@@ -43,14 +36,14 @@
         </header>
   
         <!-- View Switcher Tabs (Mobile & Quick Toggle) -->
-        <nav class="mb-4 flex gap-2 border-b border-slate-800/80 pb-3">
+        <nav class="mb-4 grid grid-cols-2 sm:flex gap-2 border-b border-slate-800/80 pb-3">
           <button 
             @click="activeTab = 'dashboard'"
             :class="activeTab === 'dashboard' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-900/40 text-slate-400 border-slate-800/60 hover:text-slate-200'"
             class="flex items-center gap-2 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
           >
             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-            Dashboard & Khata
+            Dashboard
           </button>
           <button 
             @click="activeTab = 'clubs'"
@@ -125,17 +118,17 @@
                   class="w-full"
                   :for-customer="true" 
                   :booking="booking" 
-                  @cancel="cancelBooking(booking.id)" 
+                  @cancel="cancelBookingAction(booking.id)" 
                 />
               </div>
   
-              <RouterLink 
-                to="/booking"
-                class="mt-5 flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-emerald-950/50 transition-all hover:bg-emerald-500 active:scale-[0.99]"
+              <button 
+                @click="activeTab = 'clubs'"
+                class="mt-5 flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-emerald-950/50 transition-all hover:bg-emerald-500 active:scale-[0.99] cursor-pointer"
               >
                 Book a Table
                 <span class="text-sm leading-none">&rsaquo;</span>
-              </RouterLink>
+            </button>
             </section>
   
             <!-- Games -->
@@ -212,7 +205,7 @@
               </ul>
             </section>
   
-            <!-- Khata Section (Rendered conditionally) -->
+            <!-- Khata Section -->
             <section 
               v-if="khata.outstanding"
               class="flex flex-col justify-between rounded-3xl border border-amber-600/40 bg-amber-500/5 p-5 backdrop-blur-xl lg:col-span-1"
@@ -339,78 +332,56 @@
             </div>
           </section>
   
-          <!-- Frequent Clubs Section -->
-          <section v-if="frequentClubs.length && !clubSearchQuery">
-            <div class="mb-3 flex items-center justify-between">
-              <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400">Your Frequent Venues</h3>
-              <span class="text-[10px] text-slate-500">Based on past games</span>
-            </div>
-  
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <div 
-                v-for="club in frequentClubs" 
-                :key="club.id"
-                class="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-emerald-500/30 bg-emerald-950/10 p-5 transition-all hover:border-emerald-500/60 hover:bg-emerald-950/20"
-              >
-                <div>
-                  <div class="flex items-center justify-between">
-                    <span class="rounded-md bg-emerald-500/20 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-emerald-400">Frequent</span>
-                    <span class="text-[10px] font-bold text-slate-400">{{ club.distance }}</span>
-                  </div>
-                  <h4 class="mt-3 text-base font-black text-slate-100 group-hover:text-emerald-400">{{ club.name }}</h4>
-                  <p class="mt-1 text-[11px] text-slate-400">{{ club.location }}</p>
-                </div>
-  
-                <div class="mt-5 flex items-center justify-between border-t border-slate-800/80 pt-3">
-                  <span class="text-[10px] font-semibold text-emerald-400/90">{{ club.tablesAvailable }} tables open</span>
-                  <button 
-                    @click="selectClub(club)"
-                    class="cursor-pointer rounded-xl bg-emerald-600 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-white hover:bg-emerald-500"
-                  >
-                    Book Now
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-  
           <!-- Search Results or Nearby Clubs -->
           <section>
             <div class="mb-3 flex items-center justify-between">
               <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                {{ clubSearchQuery ? `Search Results (${filteredClubs.length})` : 'Clubs Nearby' }}
+                {{ clubSearchQuery ? `Search Results (${allClubs.length})` : 'Clubs Directory' }}
               </h3>
             </div>
   
-            <div v-if="!filteredClubs.length" class="rounded-2xl border border-dashed border-slate-800 py-12 text-center">
-              <p class="text-xs font-bold text-slate-400">No clubs found matching "{{ clubSearchQuery }}"</p>
-              <p class="mt-1 text-[10px] text-slate-500">Try searching for another area or club name.</p>
+            <div v-if="clubsLoading" class="py-12 text-center text-xs font-bold text-slate-500 animate-pulse">
+              Searching arena directory…
+            </div>
+  
+            <div v-else-if="!allClubs.length" class="rounded-2xl border border-dashed border-slate-800 py-12 text-center">
+              <p class="text-xs font-bold text-slate-400">No clubs found</p>
+              <p class="mt-1 text-[10px] text-slate-500">Try searching for another area, city, or club name.</p>
             </div>
   
             <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div 
-                v-for="club in filteredClubs" 
+                v-for="club in allClubs" 
                 :key="club.id"
                 class="group flex flex-col justify-between rounded-2xl border border-slate-800 bg-slate-900/40 p-5 backdrop-blur-xl transition-all hover:border-slate-700 hover:bg-slate-900/80"
               >
                 <div>
                   <div class="flex items-center justify-between">
-                    <span class="text-[10px] font-bold text-slate-400">{{ club.distance }}</span>
-                    <span class="flex items-center gap-1 text-[10px] font-bold text-amber-400">
-                      ★ {{ club.rating }}
+                    <span 
+                      v-if="club.isFavourite" 
+                      class="rounded-md bg-amber-500/20 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-amber-400"
+                    >
+                      ★ Favorite
+                    </span>
+                    <span class="text-[10px] font-bold text-slate-400">
+                      {{ club.branchesCount }} {{ club.branchesCount === 1 ? 'Branch' : 'Branches' }}
                     </span>
                   </div>
                   <h4 class="mt-2 text-base font-black text-slate-100 group-hover:text-emerald-400">{{ club.name }}</h4>
                   <p class="mt-1 text-[11px] text-slate-400">{{ club.location }}</p>
                 </div>
   
-                <div class="mt-5 flex items-center justify-between border-t border-slate-800/80 pt-3">
-                  <span class="text-[10px] font-semibold text-slate-400">{{ club.tablesAvailable }} available</span>
+                <div class="mt-5  gap-2 flex items-center justify-end border-t border-slate-800/80 pt-3">
                   <button 
-                    @click="selectClub(club)"
-                    class="cursor-pointer rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-200 hover:border-emerald-500/50 hover:bg-emerald-600 hover:text-white"
+                    class="cursor-pointer rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-200 hover:border-emerald-500/50 hover:bg-emerald-600 hover:text-white transition-all"
                   >
                     View Arena
+                  </button>
+                  <button 
+                    @click="selectClub(club)"
+                    class="cursor-pointer rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-200 hover:border-emerald-500/50 hover:bg-emerald-600 hover:text-white transition-all"
+                  >
+                    Create Booking
                   </button>
                 </div>
               </div>
@@ -450,21 +421,13 @@
   </template>
   
   <script setup>
-  import { computed, ref } from 'vue'
+  import { computed, ref, watch, onMounted } from 'vue'
   import { useRouter } from 'vue-router'
-  import { typeLabel, typeColor } from '@baize/ui'
-  import { customer, signOut, apiGet, apiDelete } from '../auth.js'
-  import { formatPhoneDisplay } from '@baize/ui'
-  import { qrMatrix, qrSvgPath } from '@baize/ui'
-  import { BookingItem } from '@baize/ui'
-  import { PoweredByZain } from '@baize/ui'
-  import { BillingReceipt } from '@baize/ui'
-  import { useAutoRefresh } from '@baize/ui'
+  import { typeLabel, typeColor, formatPhoneDisplay, qrMatrix, qrSvgPath, BookingItem, PoweredByZain, BillingReceipt, useAutoRefresh } from '@baize/ui'
+  import { customer, signOut, apiGet } from '../auth.js'
+  import { fetchClubs, cancelBooking } from '../api.js'
   
   const router = useRouter()
-  
-  // Club branding is public (set by activated license)
-  const clubName = ref('')
   
   // Navigation tab state
   const activeTab = ref('dashboard') // 'dashboard' | 'clubs'
@@ -588,28 +551,40 @@
     },
   ])
   
-  // Club Discovery Section Logic
+  // Dynamic Club Discovery Logic
+  const allClubs = ref([])
+  const clubsLoading = ref(false)
   const clubSearchQuery = ref('')
-  
-  const frequentClubs = ref([
-    { id: 'c1', name: 'Cue Club Snooker Lounge', location: 'F-10 Markaz, Islamabad', distance: '1.2 km', tablesAvailable: 4, rating: 4.9 },
-    { id: 'c2', name: 'Baize Central Arena', location: 'Blue Area, Islamabad', distance: '3.5 km', tablesAvailable: 2, rating: 4.8 },
-  ])
-  
-  const allClubs = ref([
-    { id: 'c1', name: 'Cue Club Snooker Lounge', location: 'F-10 Markaz, Islamabad', distance: '1.2 km', tablesAvailable: 4, rating: 4.9 },
-    { id: 'c2', name: 'Baize Central Arena', location: 'Blue Area, Islamabad', distance: '3.5 km', tablesAvailable: 2, rating: 4.8 },
-    { id: 'c3', name: 'Rack & Roll Pool Parlor', location: 'I-8 Markaz, Islamabad', distance: '4.8 km', tablesAvailable: 6, rating: 4.7 },
-    { id: 'c4', name: 'BreakPoint Snooker Club', location: 'DHA Phase 2, Rawalpindi', distance: '12 km', tablesAvailable: 1, rating: 4.6 },
-    { id: 'c5', name: 'The Classic Cue', location: 'Saddar, Rawalpindi', distance: '9.4 km', tablesAvailable: 5, rating: 4.5 },
-  ])
-  
-  const filteredClubs = computed(() => {
-    if (!clubSearchQuery.value.trim()) return allClubs.value
-    const q = clubSearchQuery.value.toLowerCase()
-    return allClubs.value.filter(
-      c => c.name.toLowerCase().includes(q) || c.location.toLowerCase().includes(q)
-    )
+
+  async function loadClubs() {
+    clubsLoading.value = true
+    try {
+      const data = await fetchClubs({ query: clubSearchQuery.value })
+      const rawList = data.clubs || data || []
+      allClubs.value = rawList.map(c => ({
+        id: c.uid || c.id,
+        name: c.name,
+        location: [c.address, c.city].filter(Boolean).join(', ') || 'Address on request',
+        branchesCount: c.branches || 1,
+        isFavourite: Boolean(c.favourite)
+      }))
+    } catch (err) {
+      console.error('Failed to fetch clubs directory:', err)
+    } finally {
+      clubsLoading.value = false
+    }
+  }
+
+  let searchTimeout = null
+  watch(clubSearchQuery, () => {
+    clearTimeout(searchTimeout)
+    searchTimeout = setTimeout(() => {
+      loadClubs()
+    }, 300)
+  })
+
+  onMounted(() => {
+    loadClubs()
   })
   
   function selectClub(club) {
@@ -646,9 +621,9 @@
   }
   
   // Actions & Auto-refresh
-  async function cancelBooking(bookingId) {
+  async function cancelBookingAction(bookingId) {
     try {
-      await apiDelete(`/bookings/${bookingId}`)
+      await cancelBooking(bookingId)
       bookings.value = bookings.value.filter((b) => b.id !== bookingId)
     } catch (error) {
       console.error('Failed to cancel booking:', error)
