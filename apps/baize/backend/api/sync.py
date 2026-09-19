@@ -108,34 +108,55 @@ def apply_rows(entity, rows):
     sync_id; last-write-wins by updated_at; FK stable ids resolved to local ids."""
     Model, fks = SPEC_BY_NAME[entity]
     fk_by_wire = {f[1]: f for f in fks}
-    # datetime columns arrive as ISO strings and must be parsed back, or the DB
-    # driver rejects them (only updated_at/deleted_at were handled before).
     dt_cols = {c.key for c in Model.__table__.columns
                if getattr(c.type, 'python_type', None) is datetime}
     applied = 0
+
     for row in rows:
+        # Check if any required Foreign Key fails to resolve
+        fk_failed = False
+        fk_resolved_values = {}
+
+        for k, v in row.items():
+            if k in fk_by_wire:
+                local_col, _, Parent, attr = fk_by_wire[k]
+                parent = Parent.query.filter_by(**{attr: v}).first() if v is not None else None
+                
+                # Check if the column is NOT NULL in the target database model
+                col_obj = getattr(Model, local_col).property.columns[0]
+                if not col_obj.nullable and parent is None and v is not None:
+                    # Parent record missing on cloud side; skip row for now
+                    fk_failed = True
+                    break
+                
+                fk_resolved_values[local_col] = parent.id if parent else None
+
+        if fk_failed:
+            continue  # Skip this record; it will be retried on the next sync pass once the parent exists
+
         obj = Model.query.filter_by(sync_id=row['sync_id']).first()
         incoming = _parse(row.get('updated_at'))
         if obj and obj.updated_at and incoming and incoming <= obj.updated_at:
             continue                                   # stale — keep ours
+
         if obj is None:
             obj = Model(sync_id=row['sync_id'])
             db.session.add(obj)
+
         for k, v in row.items():
             if k in ('sync_id',):
                 continue
             if k in fk_by_wire:
-                local_col, _, Parent, attr = fk_by_wire[k]
-                parent = Parent.query.filter_by(**{attr: v}).first() if v is not None else None
-                setattr(obj, local_col, parent.id if parent else None)
+                local_col = fk_by_wire[k][0]
+                setattr(obj, local_col, fk_resolved_values[local_col])
             elif k in dt_cols:
                 setattr(obj, k, _parse(v) if isinstance(v, str) else v)
             elif hasattr(obj, k):
                 setattr(obj, k, v)
         applied += 1
+
     db.session.commit()
     return applied
-
 
 def _cursor(entity):
     c = db.session.get(SyncCursor, entity)
