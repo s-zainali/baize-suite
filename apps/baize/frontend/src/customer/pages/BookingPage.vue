@@ -149,7 +149,7 @@
         <BookingConfirmModal v-if="confirmed" v-bind="confirmed" @close="confirmed = null; router.push('/home')" />
     </div>
 </template>
-
+ 
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { typeLabel, typeColor, componentFor } from '@/composables/useTableTypes.js'

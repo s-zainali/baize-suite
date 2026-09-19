@@ -486,7 +486,6 @@ def my_bookings():
 
 
 @customer_bp.route('/bookings', methods=['POST'])
-@require_customer
 @rate_limit(limit=20, window_seconds=3600)
 def create_booking():
     data = request.json or {}
@@ -521,9 +520,9 @@ def create_booking():
         table_uid=table.uid,
         table_type=table.table_type,
         table_number=table.table_id,
-        guest_name=g.customer.name,
-        phone=g.customer.phone,
-        customer_id=g.customer.id,
+        guest_name=data.get('guestName') or g.customer.name,
+        phone=data.get('phone') or g.customer.phone,
+        customer_id=data.get('customerId') or g.customer.id,
         start_time=start,
         end_time=end,
         code=generate_booking_code(),

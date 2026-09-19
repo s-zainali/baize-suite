@@ -13,7 +13,7 @@
             <!-- Chalk grid, drawn faintly across the whole field -->
             <div class="absolute inset-0"
                 style="background-image:linear-gradient(rgba(148,163,184,0.07) 1px, transparent 1px),linear-gradient(90deg, rgba(148,163,184,0.07) 1px, transparent 1px);background-size:88px 88px" />
-
+ 
             <!-- Racked triangle, top right. Geometry is derived so the frame
                  encloses every ball rather than cutting through them. -->
             <svg class="absolute -right-20 -top-12 h-80 w-80 rotate-[14deg]" viewBox="0 0 200 145" fill="none">

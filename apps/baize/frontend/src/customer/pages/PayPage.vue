@@ -18,7 +18,7 @@
                     <p class="text-sm font-bold text-rose-400">{{ error }}</p>
                     <p class="mt-2 text-[11px] text-slate-500">Ask the counter for a fresh code.</p>
                 </div>
-
+ 
                 <!-- Already settled: say so plainly rather than inviting a second payment -->
                 <div v-else-if="payment.status === 'paid'" class="py-6 text-center">
                     <div

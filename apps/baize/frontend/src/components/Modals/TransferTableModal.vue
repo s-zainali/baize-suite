@@ -16,7 +16,7 @@
                         <!-- Label Text -->
                         <span class="text-xs uppercase font-bold text-slate-400">
                             Transfer to any type
-                        </span>
+                        </span> 
 
                         <!-- Toggle Button Track -->
                         <button type="button" role="switch" :aria-checked="transferAnywhere"

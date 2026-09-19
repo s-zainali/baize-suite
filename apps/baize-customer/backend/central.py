@@ -164,7 +164,20 @@ class LocalCentral(Central):
             )
 
         
-    def create_booking(self, db: Session, club_uid: str, branch_uid: str, table_type: str, table_number: str, lounge_uid: str, table_uid:str, start: dt.datetime, end: dt.datetime, customer) -> dict:
+    def create_booking(
+        self, 
+        db: Session, 
+        club_uid: str, 
+        branch_uid: str, 
+        table_type: str, 
+        table_number: str, 
+        lounge_uid: str, 
+        table_uid: str, 
+        start: dt.datetime, 
+        end: dt.datetime, 
+        customer
+    ) -> dict:
+        # 1. Local conflict check
         clash = db.query(Booking).filter(
             Booking.table_uid == table_uid,
             Booking.status.in_(["booked", "active"]),
@@ -174,8 +187,16 @@ class LocalCentral(Central):
         ).first()
 
         if clash:
-            raise HTTPException(409, "That slot was just taken.")
+            raise HTTPException(status_code=409, detail="That slot was just taken.")
 
+        # 2. Fetch club/branch node details to get destination base URL
+        club = db.query(Club).filter(Club.uuid == club_uid).first()
+        if not club or not getattr(club, "public_url", None):
+            raise HTTPException(status_code=400, detail="Target node URL not configured.")
+
+        booking_code = str(uuid.uuid4())[:6].upper()
+
+        # 3. Save to local DB first
         b = Booking(
             club_uid=club_uid,
             branch_uid=branch_uid,
@@ -189,10 +210,51 @@ class LocalCentral(Central):
             end_time=end,
             status="booked",
             customer_id=customer.id,
-            code=str(uuid.uuid4())[:6].upper()
+            code=booking_code
         )
-        db.add(b)
-        db.commit()
+        
+        try:
+            db.add(b)
+            db.commit()
+            db.refresh(b)
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to create local booking: {str(e)}")
+
+        # 4. Local save was successful — forward to the target node endpoint
+        target_url = f"{club.public_url.rstrip('/')}/customer/bookings"
+        payload = {
+            "tableUid": table_uid,
+            "startTime": start.isoformat(),
+            "endTime": end.isoformat(),
+            "guestName": customer.name,
+            "phone": customer.phone,
+            "customerId": customer.id
+        }
+
+        try:
+            with httpx.Client(timeout=5.0) as client:
+                res = client.post(target_url, json=payload)
+
+                if res.status_code not in (200, 201):
+                    # Node rejected the booking; rollback local booking to keep state synchronized
+                    db.delete(b)
+                    db.commit()
+
+                    err_msg = res.json().get("error", res.text) if res.headers.get("content-type") == "application/json" else res.text
+                    raise HTTPException(
+                        status_code=res.status_code, 
+                        detail=f"Local booking cancelled because remote node rejected request: {err_msg}"
+                    )
+
+        except httpx.RequestError as e:
+            # Node was unreachable; delete local booking to prevent orphaned state
+            db.delete(b)
+            db.commit()
+            raise HTTPException(
+                status_code=502, 
+                detail=f"Local booking cancelled because remote node was unreachable: {str(e)}"
+            )
 
         return {
             "ok": True,
@@ -203,7 +265,7 @@ class LocalCentral(Central):
                 "endTime": end.isoformat()
             }
         }
-
+    
     def my_bookings(self, db: Session, customer) -> list:
         rows = db.query(Booking).filter(
             Booking.customer_id == customer.id,

@@ -10,7 +10,7 @@
                     stroke-linecap="round" stroke-linejoin="round">
                     <path d="M20 6L9 17l-5-5" />
                 </svg>
-            </div>
+            </div> 
             <h2 class="text-lg font-black text-white">Booking Confirmed</h2>
             <p class="mt-1 text-[11px] text-slate-500">Show this code at the counter to claim your table.</p>
 

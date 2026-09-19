@@ -24,7 +24,7 @@
                     Sign Out
                 </button>
             </header>
-
+ 
             <!-- Summary strip -->
             <section class="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3 lg:grid-cols-5">
                 <div v-for="stat in stats" :key="stat.label"

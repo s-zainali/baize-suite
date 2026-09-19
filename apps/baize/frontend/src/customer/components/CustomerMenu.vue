@@ -9,7 +9,7 @@
             <span class="max-w-[90px] truncate text-xs font-bold text-slate-200">{{ firstName }}</span>
         </button>
 
-        <div v-if="open"
+        <div v-if="open" 
             class="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl">
             <div class="border-b border-slate-800 px-4 py-3">
                 <p class="truncate text-sm font-bold text-white">{{ customer.profile?.name }}</p>
