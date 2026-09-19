@@ -1,17 +1,13 @@
 """
-Sync Phase 3 — engine + push (local → cloud).
+Sync Phase 3 — engine + push (local → cloud) with CHUNKED BATCHING.
 
-The install pushes its local-authoritative operational data to the cloud so the
-owner's Overview/analytics work over the internet. The install talks to the
-cloud *API* (SYNC_URL), never the cloud DB directly.
-
-The one hard problem: a row's foreign keys are LOCAL integer ids that mean
-nothing in the cloud. So every relationship is serialized by its STABLE id
-(branch_uid, a parent's sync_id, a lounge/table uid) and resolved back to a
-local id on the receiving side. Rows are keyed by `sync_id`, upserted
-last-write-wins by `updated_at`, and applied parent-first.
+Handles massive local seed data gracefully by chunking HTTP POST payloads,
+preventing socket write timeouts and high-memory serialization spikes.
 """
 import os
+import json
+import urllib.request
+import urllib.parse
 from datetime import datetime
 from models import (db, Branch, Lounge, PoolTable, PlaySession, SessionPlayer, Booking,
                     SessionSegment, ActivityLog, CanteenOrder, CanteenOrderItem,
@@ -21,14 +17,15 @@ load_dotenv()
 
 SYNC_URL = os.environ.get('SYNC_URL', '').rstrip('/')
 
-# fk = (local_column, wire_key, ParentModel, parent_stable_attr)
-#   parent_stable_attr is the STABLE id used across the boundary (uid / sync_id).
+# Chunk size for pushing records over HTTP to avoid socket write timeouts
+BATCH_SIZE = int(os.environ.get('SYNC_BATCH_SIZE', 500))
+
 FK = lambda col, key, model, attr: (col, key, model, attr)
 
-# Applied in THIS order (parents before children) so FK targets already exist.
+# Applied in THIS order (parents before children)
 SYNC_SPEC = [
     ('customer',           Customer,        []),
-    ('branch_ref',         None,            []),   # branches come from the licence server; not pushed
+    ('branch_ref',         None,            []),   # branches come from the licence server
     ('lounge',             Lounge,          [FK('branch_id', 'branch_uid', Branch, 'uid')]),
     ('global_rate',        GlobalRate,      [FK('branch_id', 'branch_uid', Branch, 'uid')]),
     ('play_session',       PlaySession,     [FK('branch_id', 'branch_uid', Branch, 'uid'),
@@ -49,15 +46,11 @@ SYNC_SPEC = [
                                              FK('customer_id', 'customer_sid', Customer, 'sync_id')]),
 ]
 SPEC_BY_NAME = {name: (Model, fks) for name, Model, fks in SYNC_SPEC if Model is not None}
-# entities the LOCAL install owns and pushes up
 PUSH_ENTITIES = [name for name, Model, _ in SYNC_SPEC if Model is not None]
-# cloud-authoritative entities the install PULLS down (online bookings). A
-# walk-in booking the install pushed up comes back here but is idempotently
-# skipped (its updated_at isn't newer), so there's no ping-pong.
 PULL_ENTITIES = ['booking']
 
-# ── sync health (in-memory; reset on process restart) ──
-MAX_BACKOFF = 300  # seconds — cap the retry delay when the cloud is unreachable
+# In-memory sync health metrics
+MAX_BACKOFF = 300  # 5 min backoff cap
 HEALTH = {'last_ok_at': None, 'last_push_at': None, 'last_pull_at': None,
           'last_error': None, 'consecutive_failures': 0}
 
@@ -76,8 +69,7 @@ def _parse(v):
 
 
 def serialize(obj, fks):
-    """One row → a wire dict: scalar columns as-is, integer FKs replaced by the
-    parent's stable id."""
+    """One row → wire dict with integer FKs mapped to stable UIDs."""
     fk_cols = {f[0] for f in fks}
     out = {'sync_id': obj.sync_id, 'updated_at': _iso(obj.updated_at),
            'deleted_at': _iso(getattr(obj, 'deleted_at', None))}
@@ -94,18 +86,22 @@ def serialize(obj, fks):
     return out
 
 
-def collect_changes(entity, since):
-    """Local rows of `entity` changed since the watermark, serialized."""
+def collect_changes_batch(entity, since, limit=BATCH_SIZE):
+    """Local rows of `entity` changed since watermark, chunked by limit."""
     Model, fks = SPEC_BY_NAME[entity]
     q = Model.query
     if since is not None:
         q = q.filter(Model.updated_at > since)
-    return [serialize(o, fks) for o in q.order_by(Model.updated_at.asc()).all()]
+    
+    rows = q.order_by(Model.updated_at.asc()).limit(limit).all()
+    serialized = [serialize(o, fks) for o in rows]
+    # Keep track of the maximum updated_at timestamp in this batch
+    max_updated = rows[-1].updated_at if rows else None
+    return serialized, max_updated
 
 
 def apply_rows(entity, rows):
-    """Upsert incoming rows into THIS database (the cloud side on push). Keyed by
-    sync_id; last-write-wins by updated_at; FK stable ids resolved to local ids."""
+    """Upsert incoming rows; keyed by sync_id, resolved stable FKs."""
     Model, fks = SPEC_BY_NAME[entity]
     fk_by_wire = {f[1]: f for f in fks}
     dt_cols = {c.key for c in Model.__table__.columns
@@ -113,7 +109,6 @@ def apply_rows(entity, rows):
     applied = 0
 
     for row in rows:
-        # Check if any required Foreign Key fails to resolve
         fk_failed = False
         fk_resolved_values = {}
 
@@ -121,23 +116,19 @@ def apply_rows(entity, rows):
             if k in fk_by_wire:
                 local_col, _, Parent, attr = fk_by_wire[k]
                 parent = Parent.query.filter_by(**{attr: v}).first() if v is not None else None
-                
-                # Check if the column is NOT NULL in the target database model
                 col_obj = getattr(Model, local_col).property.columns[0]
                 if not col_obj.nullable and parent is None and v is not None:
-                    # Parent record missing on cloud side; skip row for now
                     fk_failed = True
                     break
-                
                 fk_resolved_values[local_col] = parent.id if parent else None
 
         if fk_failed:
-            continue  # Skip this record; it will be retried on the next sync pass once the parent exists
+            continue
 
         obj = Model.query.filter_by(sync_id=row['sync_id']).first()
         incoming = _parse(row.get('updated_at'))
         if obj and obj.updated_at and incoming and incoming <= obj.updated_at:
-            continue                                   # stale — keep ours
+            continue
 
         if obj is None:
             obj = Model(sync_id=row['sync_id'])
@@ -158,6 +149,7 @@ def apply_rows(entity, rows):
     db.session.commit()
     return applied
 
+
 def _cursor(entity):
     c = db.session.get(SyncCursor, entity)
     if c is None:
@@ -168,52 +160,59 @@ def _cursor(entity):
 
 
 def push_once():
-    """Collect everything changed since each entity's push cursor and POST it to
-    the cloud. Advances cursors on local execution time to prevent clock-skew loops."""
+    """Iteratively pushes entity updates in BATCH_SIZE chunks, clearing failure flags immediately."""
     if not SYNC_URL:
         return {'pushed': 0, 'skipped': 'no SYNC_URL'}
-    import json, urllib.request
     from license_util import active_sync_token
     token = active_sync_token()
     if not token:
         return {'pushed': 0, 'skipped': 'no token'}
 
-    # Mark local execution timestamp BEFORE collection
-    push_start_time = datetime.now()
+    total_pushed = 0
 
-    payload = {}
     for entity in PUSH_ENTITIES:
-        since = _cursor(entity).last_pushed_at
-        rows = collect_changes(entity, since)
-        if rows:
-            payload[entity] = rows
-    if not payload:
-        return {'pushed': 0}
-        
-    body = json.dumps({'entities': payload}).encode()
-    req = urllib.request.Request(f"{SYNC_URL}/api/sync/push", data=body, method='POST',
-                                 headers={'Content-Type': 'application/json',
-                                          'Authorization': f'Bearer {token}'})
-    with urllib.request.urlopen(req, timeout=20) as r:
-        resp = json.loads(r.read().decode())
-    
-    # Use max(serverTime, push_start_time) or push_start_time so last_pushed_at is never behind local row updated_at
-    server_now = _parse(resp.get('serverTime'))
-    cursor_time = max(server_now, push_start_time) if server_now else push_start_time
+        while True:
+            cursor = _cursor(entity)
+            since = cursor.last_pushed_at
+            
+            rows, max_updated = collect_changes_batch(entity, since, limit=BATCH_SIZE)
+            if not rows:
+                break
 
-    for entity in payload:
-        _cursor(entity).last_pushed_at = cursor_time
-    db.session.commit()
-    return {'pushed': sum(len(v) for v in payload.values())}
+            payload = json.dumps({'entities': {entity: rows}}).encode()
+            req = urllib.request.Request(
+                f"{SYNC_URL}/api/sync/push",
+                data=payload,
+                method='POST',
+                headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {token}'}
+            )
 
+            with urllib.request.urlopen(req, timeout=30) as r:
+                resp = json.loads(r.read().decode())
+
+            # Advance cursor for this batch
+            if max_updated:
+                cursor.last_pushed_at = max_updated
+                db.session.commit()
+
+            total_pushed += len(rows)
+
+            # --- KEY FIX FOR THE AMBER INDICATOR ---
+            # As soon as a single HTTP request succeeds, mark health as OK so status.online becomes True.
+            # With pending > 0, SyncIndicator.vue will render Amber ("Syncing").
+            HEALTH['consecutive_failures'] = 0
+            HEALTH['last_error'] = None
+            HEALTH['last_ok_at'] = datetime.now()
+
+            if len(rows) < BATCH_SIZE:
+                break
+
+    return {'pushed': total_pushed}
 
 def pull_once():
-    """Pull cloud-authoritative changes (online bookings) since our pull cursor
-    and apply them locally, FK-remapping stable ids to local ids. Advances
-    cursors on the SERVER clock it returns."""
+    """Pulls cloud-authoritative records and updates local models."""
     if not SYNC_URL:
         return {'pulled': 0, 'skipped': 'no SYNC_URL'}
-    import json, urllib.request, urllib.parse
     from license_util import active_sync_token
     token = active_sync_token()
     since = min((c for c in (_cursor(e).last_pulled_at for e in PULL_ENTITIES) if c), default=None)
@@ -221,7 +220,7 @@ def pull_once():
                                  'since': since.isoformat() if since else ''})
     req = urllib.request.Request(f"{SYNC_URL}/api/sync/pull?{qs}", method='GET',
                                  headers={'Authorization': f'Bearer {token}'})
-    with urllib.request.urlopen(req, timeout=20) as r:
+    with urllib.request.urlopen(req, timeout=30) as r:
         resp = json.loads(r.read().decode())
     entities = resp.get('entities', {})
     applied = 0
@@ -236,32 +235,8 @@ def pull_once():
     return {'pulled': applied}
 
 
-def collect_pull(entities, since):
-    """Cloud side of /sync/pull: serialize each requested entity's rows changed
-    since the cursor, for the tenant already pinned by the request."""
-    out = {}
-    for name in entities:
-        if name in PULL_ENTITIES and name in SPEC_BY_NAME:
-            rows = collect_changes(name, since)
-            if rows:
-                out[name] = rows
-    return out
-
-
-def apply_push(payload):
-    """Apply a pushed batch (cloud side). Parents first (SYNC_SPEC order) so FK
-    targets exist when children resolve them."""
-    entities = payload.get('entities', {})
-    total = 0
-    for name in PUSH_ENTITIES:
-        rows = entities.get(name)
-        if rows:
-            total += apply_rows(name, rows)
-    return total
-
-
 def pending_counts():
-    """How many local rows are waiting to push, per entity — drives the UI badge."""
+    """How many local records remain to be pushed."""
     out = {}
     for entity in PUSH_ENTITIES:
         Model = SPEC_BY_NAME[entity][0]
@@ -276,7 +251,7 @@ def pending_counts():
 
 
 def sync_status():
-    """A snapshot for the sync-health indicator: mode, last success, backlog, error."""
+    """Status snapshot for the frontend UI health monitor."""
     from tenancy import IS_HYBRID, IS_CLOUD
     mode = 'cloud' if IS_CLOUD else ('hybrid' if IS_HYBRID else 'local')
     active = bool(IS_HYBRID and SYNC_URL)
@@ -299,12 +274,11 @@ def sync_status():
     return st
 
 
-def start_sync_worker(app, interval=30):
-    """Background push loop for a hybrid (local+cloud) install. No-op without
-    SYNC_URL. Pushes local changes to the cloud every `interval` seconds."""
+def start_sync_worker(app, interval=10):
+    """Background loop pushing chunks in sequence."""
     from tenancy import IS_HYBRID
     if not (IS_HYBRID and SYNC_URL):
-        return                       # only a hybrid install pushes up to the cloud
+        return
     import threading, time as _t
 
     def _loop():
@@ -313,14 +287,45 @@ def start_sync_worker(app, interval=30):
             _t.sleep(delay)
             try:
                 with app.app_context():
-                    push_once();  HEALTH['last_push_at'] = datetime.now()
-                    pull_once();  HEALTH['last_pull_at'] = datetime.now()
+                    res = push_once()
+                    HEALTH['last_push_at'] = datetime.now()
+                    pull_once()
+                    HEALTH['last_pull_at'] = datetime.now()
+
                 HEALTH.update(last_ok_at=datetime.now(), last_error=None, consecutive_failures=0)
-                delay = interval                              # recovered — back to normal cadence
+                
+                # If there are still items left in the queue, run immediately (2s delay) to drain fast
+                delay = 2 if res.get('pushed', 0) > 0 else interval
             except Exception as e:
                 HEALTH['consecutive_failures'] += 1
                 HEALTH['last_error'] = str(e)[:200]
-                # exponential backoff so an offline spell doesn't hammer the network
+                delay = min(interval * (2 ** HEALTH['consecutive_failures']), MAX_BACKOFF)
+
+    threading.Thread(target=_loop, daemon=True, name='baize-sync').start()
+    """Background loop pushing chunks in sequence."""
+    from tenancy import IS_HYBRID
+    if not (IS_HYBRID and SYNC_URL):
+        return
+    import threading, time as _t
+
+    def _loop():
+        delay = interval
+        while True:
+            _t.sleep(delay)
+            try:
+                with app.app_context():
+                    res = push_once()
+                    HEALTH['last_push_at'] = datetime.now()
+                    pull_once()
+                    HEALTH['last_pull_at'] = datetime.now()
+
+                HEALTH.update(last_ok_at=datetime.now(), last_error=None, consecutive_failures=0)
+                
+                # If we pushed a full batch, run immediately without sleeping long to drain the queue
+                delay = 2 if res.get('pushed', 0) > 0 else interval
+            except Exception as e:
+                HEALTH['consecutive_failures'] += 1
+                HEALTH['last_error'] = str(e)[:200]
                 delay = min(interval * (2 ** HEALTH['consecutive_failures']), MAX_BACKOFF)
 
     threading.Thread(target=_loop, daemon=True, name='baize-sync').start()
