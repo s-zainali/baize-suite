@@ -225,7 +225,6 @@ class LocalCentral(Central):
 
         # 4. Local save was successful — forward to the target node endpoint
         target_url = f"{club.public_url.rstrip('/')}/api/customer/bookings"
-        print(target_url)
         payload = {
             "syncId": sync_id,
             "tableUid": table_uid,
@@ -293,12 +292,39 @@ class LocalCentral(Central):
             Booking.customer_id == customer.id
         ).first()
 
+        club_uid = b.club_uid
+        club = db.query(Club).filter(Club.uuid == club_uid).first()
+
         if not b:
             raise HTTPException(404, "No such booking.")
+        
+        target_url = f"{club.public_url.rstrip('/')}/api/customer/bookings/{b.sync_id}"
+        try:
+            with httpx.Client(timeout=5.0) as client:
+                res = client.delete(target_url)
 
-        b.deleted_at = dt.datetime.utcnow()
-        b.status = "cancelled"
-        db.commit()
+                if res.status_code not in (200, 201):
+                    # Node rejected the booking; rollback local booking to keep state synchronized
+
+                    err_msg = res.json().get("error", res.text) if res.headers.get("content-type") == "application/json" else res.text
+                    raise HTTPException(
+                        status_code=res.status_code, 
+                        detail=f"Local booking not cancelled because remote node rejected request: {err_msg}"
+                    )
+
+        except httpx.RequestError as e:
+            # Node was unreachable; delete local booking to prevent orphaned state
+            raise HTTPException(
+                status_code=502, 
+                detail=f"Local booking not cancelled because remote node was unreachable: {str(e)}"
+            )
+        try:
+            b.deleted_at = dt.datetime.utcnow()
+            b.status = "cancelled"
+            db.commit()
+        except Exception as e:
+            b.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to delete local booking: {str(e)}")
 
         return {"ok": True}
 

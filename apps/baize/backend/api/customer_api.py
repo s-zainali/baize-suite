@@ -533,10 +533,9 @@ def create_booking():
     return jsonify({'success': True, 'id': booking.id, 'code': booking.code}), 201
 
 
-@customer_bp.route('/bookings/<int:booking_id>', methods=['DELETE'])
-@require_customer
-def cancel_booking(booking_id):
-    booking = Booking.query.filter_by(id=booking_id, customer_id=g.customer.id).first()
+@customer_bp.route('/bookings/<sync_id>', methods=['DELETE'])
+def cancel_booking(sync_id):
+    booking = Booking.query.filter_by(sync_id == sync_id).first()
     # Filtering by customer_id in the QUERY, not after fetching, so another
     # guest's booking id simply doesn't exist from here.
     if not booking:
