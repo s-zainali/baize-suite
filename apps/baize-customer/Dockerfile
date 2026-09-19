@@ -25,7 +25,7 @@ COPY --from=frontend-builder /app/dist /app/dist
 
 WORKDIR /app/backend
 
-# Expose port and run application via Gunicorn
+# Expose port and run application via uvicorn
 ENV PORT=10000
 EXPOSE 10000
 
