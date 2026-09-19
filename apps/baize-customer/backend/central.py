@@ -88,7 +88,14 @@ class LocalCentral(Central):
     def table_types(self, db: Session) -> list:
         return []
 
-    def availability(self, db: Session, date: dt.date, club_uid: Optional[str]) -> dict:
+    
+    def availability(
+        self, 
+        db: Session, 
+        date: dt.date, 
+        club_uid: Optional[str], 
+        branch_uid: Optional[str] = None
+    ) -> dict:
         target_club_uid = club_uid or config.CLUB_UID
         if not target_club_uid:
             raise HTTPException(status_code=400, detail="A valid club_uid is required.")
@@ -97,10 +104,9 @@ class LocalCentral(Central):
         if not club:
             raise HTTPException(status_code=404, detail="Club not found.")
 
-        # If public_url is configured on the club, proxy to remote node
         public_url = getattr(club, "public_url", None)
         if public_url:
-            return self._fetch_remote_availability(public_url, date)
+            return self._fetch_remote_availability(club.club_name, public_url, date, branch_uid)
 
         # Standalone / Local DB fallback
         start = dt.datetime.combine(date, dt.time.min)
@@ -115,6 +121,7 @@ class LocalCentral(Central):
         ).all()
 
         return {
+            "club" : club.club_name,
             "date": date.isoformat(),
             "branches": [],
             "selectedBranch": branch_uid,
@@ -127,20 +134,35 @@ class LocalCentral(Central):
             } for b in busy]
         }
 
-    def _fetch_remote_availability(self, public_url: str, date: dt.date) -> dict:
+    def _fetch_remote_availability(
+        self, 
+        club_name: str,
+        public_url: str, 
+        date: dt.date, 
+        branch_uid: Optional[str] = None
+    ) -> dict:
         base_url = public_url.rstrip("/")
-        url = f"{base_url}/api/availability"
+        url = f"{base_url}/api/customer/availability"
+        
+        # Build query params dynamically
         params = {"date": date.isoformat()}
+        if branch_uid:
+            params["branch"] = branch_uid  # Passes ?branch=... to remote node
 
         try:
             with httpx.Client(timeout=5.0) as client:
                 res = client.get(url, params=params)
                 if res.status_code != 200:
                     raise HTTPException(status_code=res.status_code, detail=f"Club node error: {res.text}")
-                return res.json()
+                resJson = res.json()
+                resJson['club'] = club_name
+                return resJson
         except httpx.RequestError as e:
-            raise HTTPException(status_code=502, detail=f"Could not reach club node at {public_url}: {str(e)}")
-        
+            raise HTTPException(
+                status_code=502, 
+                detail=f"Could not reach club node at {public_url}: {str(e)}"
+            )
+
         
     def create_booking(self, db: Session, table_uid: str, start: dt.datetime, end: dt.datetime, customer) -> dict:
         clash = db.query(Booking).filter(

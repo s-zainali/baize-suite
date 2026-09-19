@@ -26,10 +26,17 @@ export const resetPassword = ({ resetToken, password }) =>
 export const fetchClubs = ({ query = '', near = '' } = {}) => 
     apiGet(`/clubs?query=${encodeURIComponent(query)}&near=${encodeURIComponent(near)}`)
 
-export const fetchAvailability = ({ date, clubUid }) => {
+export const fetchAvailability = ({ date, clubUid, branchUid }) => {
     if (!clubUid) throw new Error('clubUid is required')
-    return apiGet(`/clubs/${encodeURIComponent(clubUid)}/availability?date=${date}`)
+    
+    let path = `/clubs/${encodeURIComponent(clubUid)}/availability?date=${date}`
+    if (branchUid) {
+        path += `&branch=${encodeURIComponent(branchUid)}`
+    }
+    
+    return apiGet(path)
 }
+
 export const createBooking = ({ tableUid, startTime, endTime }) =>
     apiPost('/bookings', { tableUid, startTime, endTime })
 

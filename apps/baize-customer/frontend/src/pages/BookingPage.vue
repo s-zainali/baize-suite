@@ -42,7 +42,7 @@
                     <div class="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2.5">
                         <span class="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-500">
                             Club</span>
-                        <p class="truncate text-sm font-bold text-white"></p>
+                        <p class="truncate text-sm font-bold text-white">{{ clubName }}</p>
                     </div>
 
                     <DropdownField :form="form" :field="'branch'" :options="branchOptions" :label="'Branch'"
@@ -183,6 +183,7 @@ usePageBackground('#0f172a')
 const router = useRouter()
 const route = useRoute()
 const clubUid = computed(() => route.query.clubId || '')
+const clubName = ref('')
 const myPhone = computed(() => formatPhoneDisplay(customer.profile?.phone || ''))
 
 const state = ref({ tables: [], lounges: [], bookings: [], branches: [] })
@@ -233,18 +234,19 @@ watch(() => [form.date, form.startTime], reconcileTimes, { immediate: true })
 let poll
 async function fetchState() {
     if (!clubUid.value) return
-    console.log(clubUid.value)
-    console.log(form.date)
 
     try {
         // Pass club_uid so backend can look up Club.public_url
-        const data = fetchAvailability({
+        const data = await fetchAvailability({
             date : form.date, 
-            clubUid : clubUid.value
+            clubUid : clubUid.value,
+            branchUid: form.branch
         })
 
         if (!form.branch && data.selectedBranch) form.branch = data.selectedBranch
 
+        clubName.value = data.club
+        
         state.value = {
             tables: data.tables || [],
             lounges: data.lounges || [],
@@ -256,6 +258,15 @@ async function fetchState() {
                 mine: b.mine,
             })),
         }
+
+        if (selectedTable.value) {
+            state.value.tables.forEach(table => {
+                if (table.uid == selectedTable.value.uid) {
+                    table.isActive = true
+                }
+            })
+        }
+
     } catch (_) { /* transient: the poll will retry */ }
 }
 let tick

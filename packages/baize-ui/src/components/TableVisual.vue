@@ -81,7 +81,7 @@
             </div>
         </div>
     </div>
-    <div v-if="isPlaystation || isPc || isXbox" :class="isDisplay ? 'w-[101px] h-[195px]' : ''">
+    <div v-else-if="isPlaystation || isPc || isXbox" :class="isDisplay ? 'w-[101px] h-[195px]' : ''">
         <div class="w-[202px] relative flex-none px-4" :class="isDisplay ? 'scale-50 origin-top-left' : 'mt-12'">
 
             <div class="flex flex-col items-center w-full relative z-10 group">
@@ -674,7 +674,7 @@
 
         </div>
     </div>
-    <div v-else :class="isDisplay ? 'w-[101px] h-[190px]' : ''">
+    <div v-else-if="isFoosball" :class="isDisplay ? 'w-[101px] h-[190px]' : ''">
         <div class="w-[202px] relative  flex-none px-4" :class="isDisplay ? 'scale-50 origin-top-left' : 'mt-12'">
 
             <div class="flex flex-col items-center w-full relative z-10 group">
@@ -834,6 +834,7 @@ const isSnooker = computed(
     () => props.table.type && props.table.type.toLowerCase().includes('snooker'),
 )
 const isPool = computed(() => props.table.type && props.table.type.toLowerCase().includes('pool'))
+const isFoosball = computed(() => props.table.type && props.table.type.toLowerCase() === 'foosball')
 const isPrivatePool = computed(
     () => props.table.type && props.table.type.toLowerCase().includes('private'),
 )

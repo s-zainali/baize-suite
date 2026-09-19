@@ -26,6 +26,7 @@ class Booking(Base):
     club_uid = Column(String)
     branch_id = Column(Integer); club_uid = Column(String)
     code = Column(String)
+    lounge_uid = Column(String)
     table_uid = Column(String)
     table_type = Column(String)
     table_number = Column(Integer)
@@ -44,8 +45,10 @@ class Customer(Base):
     __tablename__ = "customer"
     id = Column(Integer, primary_key=True)
     sync_id = Column(String, default=lambda: str(uuid.uuid4()))
-    name = Column(String); phone = Column(String, index=True); email = Column(String)
-    password_hash = Column(String); club_uid = Column(String)
+    name = Column(String)
+    phone = Column(String, index=True)
+    email = Column(String)
+    password_hash = Column(String)
     created_at = Column(DateTime, default=dt.datetime.utcnow)
 
 

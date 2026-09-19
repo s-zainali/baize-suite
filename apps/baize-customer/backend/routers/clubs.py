@@ -87,12 +87,17 @@ def get_table_types(db: Session = Depends(get_db)):
 def get_availability(
     club_uid: str,
     date: str = Query(..., description="YYYY-MM-DD"),
+    branch: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
-    """Fetch lounge, table layout, rates, and active reservations for a given date."""
     try:
         parsed_date = dt.date.fromisoformat(date)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
         
-    return central.availability(db=db, date=parsed_date, club_uid=club_uid)
+    return central.availability(
+        db=db, 
+        date=parsed_date, 
+        club_uid=club_uid, 
+        branch_uid=branch
+    )

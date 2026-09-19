@@ -1,2 +1,31 @@
 @import "tailwindcss";
 @source "../../../../packages/baize-ui/src";
+
+
+@theme {
+    /* Classic Green Pool Felt */
+    --color-pool-felt-50: #f1fcf5;
+    --color-pool-felt-100: #def9e6;
+    --color-pool-felt-200: #bef2ce;
+    --color-pool-felt-300: #8ee6a9;
+    --color-pool-felt-400: #56cf7b;
+    --color-pool-felt-500: #2fae58;
+    --color-pool-felt-600: #208f44;
+    --color-pool-felt-700: #1c7138;
+    --color-pool-felt-800: #1b5a30;
+    --color-pool-felt-900: #174a29;
+    --color-pool-felt-950: #0a2915;
+  
+    /* Traditional Wood Rail / Cabinet */
+    --color-pool-wood-50: #fcf6f4;
+    --color-pool-wood-100: #f7ebe6;
+    --color-pool-wood-200: #f0d3ca;
+    --color-pool-wood-300: #e3b1a2;
+    --color-pool-wood-400: #d08671;
+    --color-pool-wood-500: #bd624a;
+    --color-pool-wood-600: #a74933;
+    --color-pool-wood-700: #8b3a27;
+    --color-pool-wood-800: #743224;
+    --color-pool-wood-900: #612d22;
+    --color-pool-wood-950: #35150e;
+  }
