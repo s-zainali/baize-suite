@@ -16,6 +16,10 @@ export default defineConfig({
     host: '0.0.0.0', // Exposes the app to the local network
     port: 5174,      // You can specify a fixed port if you want
   },
+  build: {
+    outDir: '../dist',
+    emptyOutDir: true,
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
