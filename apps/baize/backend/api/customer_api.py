@@ -516,7 +516,7 @@ def create_booking():
 
     print(data.get('syncId'), 'ttrt')
     booking = Booking(
-        sync_id=data.get('syncId'),
+        # sync_id=data.get('syncId'),
         branch_id=table.branch_id,   # a booking always belongs to its table's branch
         table_uid=table.uid,
         table_type=table.table_type,
