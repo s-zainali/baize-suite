@@ -167,6 +167,7 @@ def push_once():
     req = urllib.request.Request(f"{SYNC_URL}/api/sync/push", data=body, method='POST',
                                  headers={'Content-Type': 'application/json',
                                           'Authorization': f'Bearer {token}'})
+    print(f"DEBUG SYNC TOKEN TRANSMITTING: {token[:15]}... (Length: {len(token) if token else 0})")
     with urllib.request.urlopen(req, timeout=20) as r:
         resp = json.loads(r.read().decode())
     server_now = _parse(resp.get('serverTime')) or datetime.now()
@@ -189,6 +190,7 @@ def pull_once():
     since = min((c for c in (_cursor(e).last_pulled_at for e in PULL_ENTITIES) if c), default=None)
     qs = urllib.parse.urlencode({'entities': ','.join(PULL_ENTITIES),
                                  'since': since.isoformat() if since else ''})
+    print(f"DEBUG SYNC TOKEN TRANSMITTING: {token[:15]}... (Length: {len(token) if token else 0})")
     req = urllib.request.Request(f"{SYNC_URL}/api/sync/pull?{qs}", method='GET',
                                  headers={'Authorization': f'Bearer {token}'})
     with urllib.request.urlopen(req, timeout=20) as r:
