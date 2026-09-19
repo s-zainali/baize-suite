@@ -188,6 +188,8 @@ const myPhone = computed(() => formatPhoneDisplay(customer.profile?.phone || '')
 
 const state = ref({ tables: [], lounges: [], bookings: [], branches: [] })
 const selectedTable = ref(null)
+const selectedBranch = computed(() => state.value.branches.find(branch => branch.uid === form.branch))
+const selectedLounge = computed(() => state.value.lounges.find(lounge => lounge.uid === selectedTable.value.loungeUid))
 const branchOptions = computed(() => state.value.branches.map(b => ({ value: b.uid, label: b.name })))
 const submitting = ref(false)
 const error = ref('')
@@ -380,6 +382,11 @@ async function submitBooking() {
         const startTime = `${form.date}T${form.startTime}:00`
         const endTime = `${form.date}T${form.endTime}:00`
         const res = await apiPost('/bookings', {
+            clubUid: clubUid.value,
+            branchUid: form.branch,
+            tableType: selectedTable.value.type,
+            tableNumber: selectedTable.value.id,
+            loungeUid: selectedTable.value.loungeUid,
             tableUid: selectedTable.value.uid,
             startTime,
             endTime,
@@ -387,6 +394,9 @@ async function submitBooking() {
         // Hold the details for the confirmation modal; the redirect waits until
         // the guest dismisses it, so they get a chance to screenshot the code.
         confirmed.value = {
+            club: clubName.value,
+            branch: selectedBranch.value.name,
+            lounge: selectedLounge.value.name,
             code: res.code || '',
             tableType: selectedTable.value.type,
             tableNumber: selectedTable.value.id,

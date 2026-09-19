@@ -25,7 +25,7 @@ def create_booking(body: BookingIn, c: Customer = Depends(current_customer), s: 
     start = dt.datetime.fromisoformat(body.startTime); end = dt.datetime.fromisoformat(body.endTime)
     if end <= start:
         raise HTTPException(400, "End time must be after the start.")
-    return central.create_booking(s, body.tableUid, start, end, c)
+    return central.create_booking(s, body.clubUid, body.branchUid, body.tableType, body.tableNumber, body.loungeUid, body.tableUid, start, end, c)
 
 @router.get("/bookings")
 def my_bookings(c: Customer = Depends(current_customer), s: Session = Depends(get_db)):

@@ -10,6 +10,11 @@ class SignIn(BaseModel):
     phone: str; password: str
 
 class BookingIn(BaseModel):
+    clubUid: str
+    branchUid: str
+    tableType: str
+    tableNumber: str
+    loungeUid: str
     tableUid: str
     startTime: str
     endTime: str

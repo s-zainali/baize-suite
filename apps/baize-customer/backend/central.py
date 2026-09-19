@@ -34,7 +34,7 @@ class Central(ABC):
     def availability(self, db: Session, date: dt.date, club_uid: Optional[str]) -> dict: ...
 
     @abstractmethod
-    def create_booking(self, db: Session, table_uid: str, start: dt.datetime,
+    def create_booking(self, db: Session, club_uid: str, branch_uid: str, table_type: str, table_number: str, lounge_uid: str, table_uid:str, start: dt.datetime,
                        end: dt.datetime, customer) -> dict: ...
 
     @abstractmethod
@@ -164,7 +164,7 @@ class LocalCentral(Central):
             )
 
         
-    def create_booking(self, db: Session, table_uid: str, start: dt.datetime, end: dt.datetime, customer) -> dict:
+    def create_booking(self, db: Session, club_uid: str, branch_uid: str, table_type: str, table_number: str, lounge_uid: str, table_uid:str, start: dt.datetime, end: dt.datetime, customer) -> dict:
         clash = db.query(Booking).filter(
             Booking.table_uid == table_uid,
             Booking.status.in_(["booked", "active"]),
@@ -177,7 +177,11 @@ class LocalCentral(Central):
             raise HTTPException(409, "That slot was just taken.")
 
         b = Booking(
-            club_uid=config.CLUB_UID,
+            club_uid=club_uid,
+            branch_uid=branch_uid,
+            table_type=table_type,
+            table_number=table_number,
+            lounge_uid=lounge_uid,
             table_uid=table_uid,
             guest_name=customer.name,
             phone=customer.phone,

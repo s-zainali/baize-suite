@@ -14,18 +14,6 @@
             <h2 class="text-lg font-black text-white">Booking Confirmed</h2>
             <p class="mt-1 text-[11px] text-slate-500">Show this code at the counter to claim your table.</p>
 
-            <!-- the seal: a guilloché pattern drawn deterministically from the code.
-                 It always renders the same for a given code and is impractical to
-                 reproduce by hand, so a screenshot reads as genuine at a glance. -->
-            <div class="mx-auto mt-5 flex h-40 w-40 items-center justify-center rounded-2xl border border-slate-800 bg-slate-950/60">
-                <svg viewBox="0 0 160 160" class="h-36 w-36" aria-hidden="true">
-                    <circle cx="80" cy="80" r="70" fill="none" :stroke="hue(layers[0].h, 0.18)" stroke-width="1" />
-                    <circle cx="80" cy="80" r="63" fill="none" :stroke="hue(layers[1].h, 0.14)" stroke-width="1" />
-                    <path v-for="(ly, i) in layers" :key="i" :d="ly.path" fill="none"
-                        :stroke="hue(ly.h, i === 0 ? 0.9 : 0.55)" :stroke-width="i === 0 ? 1.1 : 0.8"
-                        stroke-linejoin="round" stroke-linecap="round" />
-                </svg>
-            </div>
 
             <!-- the code -->
             <p class="mt-5 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Booking Code</p>
@@ -33,6 +21,18 @@
 
             <!-- details, so the screenshot is self-contained -->
             <div class="mt-5 space-y-1.5 rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-3 text-left">
+                <div class="flex items-center justify-between gap-3">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Club</span>
+                    <span class="text-xs font-bold text-white">{{ club }}</span>
+                </div>
+                <div class="flex items-center justify-between gap-3">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Branch</span>
+                    <span class="text-xs font-bold text-white">{{ branch }}</span>
+                </div>
+                <div class="flex items-center justify-between gap-3">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Lounge</span>
+                    <span class="text-xs font-bold text-white">{{ lounge }}</span>
+                </div>
                 <div class="flex items-center justify-between gap-3">
                     <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Station</span>
                     <span class="text-xs font-bold text-white">{{ typeLabel(tableType) }} #{{ tableNumber }}</span>
@@ -65,6 +65,9 @@ import { typeLabel } from '@baize/ui'
 
 const props = defineProps({
     code: { type: String, default: '' },
+    club: { type: String, default: '' },
+    branch: { type: String, default: '' },
+    lounge: { type: String, default: '' },
     tableType: { type: String, default: '' },
     tableNumber: { type: [String, Number], default: '' },
     date: { type: String, default: '' },        // 'YYYY-MM-DD'
