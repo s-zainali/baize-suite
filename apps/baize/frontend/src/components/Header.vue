@@ -21,6 +21,7 @@
 
         <div class="flex flex-grow flex-wrap items-center justify-end gap-2">
             <!-- Page-specific controls: a tab switch, a filter button, a clock. -->
+            <SyncIndicator />
             <slot name="controls" />
 
             <button v-if="isBills" @click="emit('activate-modal', 'refresh')" :disabled="refreshing"
@@ -63,6 +64,7 @@
  */
 import { computed } from 'vue'
 import { drawerOpen } from '@/composables/useSidebar.js'
+import SyncIndicator from './SyncIndicator.vue'
 
 const props = defineProps({
     // Which page is wearing the bar. Kept from the previous header so existing

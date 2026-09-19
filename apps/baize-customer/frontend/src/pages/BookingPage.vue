@@ -118,8 +118,9 @@
                             class="rounded-xl border p-3 text-left transition-all shrink-0 flex flex-col items-center justify-center h-[245px]"
                             :class="tileClass(t), isBooked(t.uid) ? 'cursor-default' : 'cursor-pointer'">
                             <div class="flex h-full items-center">
-                                <TableVisual :type="t.type" :id="t.id" :rate="t.currentRate"
-                                    :booked="isBooked(t.uid)" :active="t.isActive" />
+                                <component :is="componentFor(t.type)" :table="t" :showBookingStatus="false"
+                                    :current-rate="t.currentRate" :is-display="true" :slot-booked="isBooked(t.uid)"
+                                    :bookings="state.bookings" />
                             </div>
                             <div class="mt-2">
                                 <p v-if="isBooked(t.uid)"
@@ -151,8 +152,8 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
-import { TableVisual, typeLabel } from '@baize/ui'
-import { useRouter } from 'vue-router'
+import { typeLabel } from '@baize/ui'
+import { useRouter, useRoute } from 'vue-router'
 import { apiGet, apiPost, isSignedIn, customer } from '../auth.js'
 import { formatPhoneDisplay } from '@baize/ui'
 import { usePageBackground } from '@baize/ui'
@@ -186,6 +187,8 @@ const sampleTable = (id, type) => ({
 
 usePageBackground('#0f172a')
 const router = useRouter()
+const route = useRoute()
+const clubUid = computed(() => route.query.club || '')
 const myPhone = computed(() => formatPhoneDisplay(customer.profile?.phone || ''))
 
 const state = ref({ tables: [], lounges: [], bookings: [], branches: [] })
@@ -238,8 +241,9 @@ async function fetchState() {
     try {
         // Availability for the selected day only, and it carries no other
         // guest's name or number — just which ranges are taken.
+        const cq = clubUid.value ? `&club=${encodeURIComponent(clubUid.value)}` : ''
         const bq = form.branch ? `&branch=${encodeURIComponent(form.branch)}` : ''
-        const data = await apiGet(`/availability?date=${form.date}${bq}`)
+        const data = await apiGet(`/availability?date=${form.date}${cq}${bq}`)
         // Adopt the server's chosen branch (e.g. single-branch clubs) so the
         // selector reflects what's actually being shown.
         if (!form.branch && data.selectedBranch) form.branch = data.selectedBranch

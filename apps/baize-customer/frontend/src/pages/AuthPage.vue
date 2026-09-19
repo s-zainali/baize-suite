@@ -88,16 +88,6 @@
                         <img src="/baize_logo.png" class="h-20" alt="">
                         <img src="/baize_logo_text.png" class="w-25" alt="">
                     </div>
-                    
-                    <TableVisual :table="{
-                        uid: 'sample-privatePool',
-                        id: '1',
-                        type: 'privatePool',
-                        isActive: false,
-                        bookingName: '',
-                        players: [],
-                        resumable: false
-                    }"/>
                     <p class="mt-1 text-xs text-slate-500">{{ subtitle }}</p>
                 </div>
 

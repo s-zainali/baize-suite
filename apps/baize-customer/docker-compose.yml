@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: baize-customer
       POSTGRES_DB: baize-customer
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - customerdata:/var/lib/postgresql/data
     healthcheck:

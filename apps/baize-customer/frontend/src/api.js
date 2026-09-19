@@ -5,13 +5,13 @@ import { apiPost, setSession } from './auth.js'
 
 export async function signUp({ name, phone, email, password }) {
     const data = await apiPost('/register', { name, phone, email, password })
-    setSession(data.token, data.customer)
+    setSession(data.token, data.profile)
     return data
 }
 
 export async function signIn({ phone, password }) {
     const data = await apiPost('/login', { phone, password })
-    setSession(data.token, data.customer)
+    setSession(data.token, data.profile)
     return data
 }
 

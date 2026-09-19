@@ -1118,6 +1118,38 @@ def get_table_types():
         return t.renderer == 'pool' or t.renderer in feats
     return jsonify([{**t.to_dict(), 'entitled': _entitled(t)} for t in rows])
 
+@app.route('/api/sync/status', methods=['GET'])
+def sync_status_ep():
+    """Local sync-health snapshot for the UI indicator (mode, backlog, last error)."""
+    import sync as _sync
+    return jsonify(_sync.sync_status())
+
+
+@app.route('/api/sync/pull', methods=['GET'])
+def sync_pull():
+    """Serve a local install its cloud-authoritative changes (online bookings)
+    since a cursor. Token-authenticated; the tenant is pinned from that token,
+    so RLS scopes the result to the install's club."""
+    from tenancy import IS_CLOUD
+    if not IS_CLOUD:
+        return jsonify({'error': 'not a cloud install'}), 400
+    auth = request.headers.get('Authorization', '')
+    token = auth[7:] if auth.startswith('Bearer ') else ''
+    from license_util import _verified_token
+    if not (_verified_token(token) if token else None):
+        return jsonify({'error': 'unauthorized'}), 401
+    import sync as _sync
+    from datetime import datetime as _dtm
+    entities = [e for e in (request.args.get('entities', '') or '').split(',') if e]
+    since_raw = request.args.get('since') or None
+    since = None
+    if since_raw:
+        try: since = _dtm.fromisoformat(since_raw)
+        except ValueError: since = None
+    out = _sync.collect_pull(entities or _sync.PULL_ENTITIES, since)
+    return jsonify({'entities': out, 'serverTime': _dtm.now().isoformat()})
+
+
 @app.route('/cloud/session', methods=['POST'])
 def cloud_session():
     """Owner signs into the CLOUD app with their signed branch/licence token
@@ -1147,7 +1179,7 @@ def cloud_session():
                     'clubUid': claims['sub']})
 
 
-@app.route('/sync/push', methods=['POST'])
+@app.route('/api/sync/push', methods=['POST'])
 def sync_push():
     """Receive a local install's changes into the cloud DB. Authenticated by the
     install's signed branch/club token; the tenant is pinned from that token by
