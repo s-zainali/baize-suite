@@ -544,7 +544,7 @@ def cancel_booking(sync_id):
         return jsonify({'error': "This session has already started — speak to the front desk"}), 409
     booking.status = 'cancelled'
     booking.deleted_at = datetime.now()
-    booking.deleted_by = f'customer:{g.customer.name}'
+    booking.deleted_by = f'baize app'
     db.session.commit()
     return jsonify({'success': True})
 
