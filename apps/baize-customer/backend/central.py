@@ -292,11 +292,11 @@ class LocalCentral(Central):
             Booking.customer_id == customer.id
         ).first()
 
-        club_uid = b.club_uid
-        club = db.query(Club).filter(Club.uuid == club_uid).first()
 
         if not b:
             raise HTTPException(404, "No such booking.")
+        club_uid = b.club_uid
+        club = db.query(Club).filter(Club.uuid == club_uid).first()
         
         target_url = f"{club.public_url.rstrip('/')}/api/customer/bookings/{b.sync_id}"
         try:
