@@ -46,8 +46,13 @@ MCowBQYDK2VwAyEAyeJP+REYpATlyV+AAd/XEFLLdJicLOjnpEZhegQd7/U=
 
 # Load your hardcoded keys properly so PyJWT accepts EdDSA
 _DEFAULT_PUBLIC_KEY_OBJ = load_pem_public_key(_DEFAULT_PUBLIC_KEY.encode('utf-8'))
-PUBLIC_KEY = (os.environ.get("LICENSE_PUBLIC_KEY") or _DEFAULT_PUBLIC_KEY_OBJ).strip()
 
+raw_env_key = os.environ.get("LICENSE_PUBLIC_KEY")
+
+if raw_env_key:
+    PUBLIC_KEY = load_pem_public_key(raw_env_key.strip().encode('utf-8'))
+else:
+    PUBLIC_KEY = _DEFAULT_PUBLIC_KEY_OBJ
 # Keys addressable by the token header's `kid`, so a key can be rotated in later
 # without invalidating tokens signed by the old one. Unknown/absent kid falls
 # back to the current key.
