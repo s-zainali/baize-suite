@@ -272,7 +272,7 @@ class LocalCentral(Central):
     def my_bookings(self, db: Session, customer) -> list:
         rows = db.query(Booking).filter(
             Booking.customer_id == customer.id,
-            Booking.status not in  ['cancelled', 'completed'],
+            Booking.status.not_in(['cancelled', 'completed']),
             Booking.deleted_at.is_(None)
         ).order_by(Booking.start_time).all()
 
