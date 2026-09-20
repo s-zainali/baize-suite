@@ -2,6 +2,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import config
+import os
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from routers import auth, clubs, booking
 
 from database import engine, Base
@@ -16,6 +19,22 @@ app.include_router(auth.router)
 app.include_router(clubs.router)
 app.include_router(booking.router)
 
-@app.get("/")
-def root():
-    return {"service": "baize-customer", "ok": True, "mode": "central" if config.CENTRAL_API_URL else "local"}
+DIST_DIR = "/app/dist"
+
+if os.path.exists(DIST_DIR):
+    # Mount internal compiled assets (js, css, images)
+    app.mount("/assets", StaticFiles(directory=os.path.join(DIST_DIR, "assets")), name="static")
+
+    # Catch-all route to serve index.html for Vue client-side page routing
+    @app.get("/{catchall:path}")
+    def serve_frontend(catchall: str):
+        # Prevent the single-page app fallback from swallowing api calls if someone hits a bad endpoint
+        if catchall.startswith("customer/"):
+            return FileResponse(os.path.join(DIST_DIR, "index.html"))
+            
+        return FileResponse(os.path.join(DIST_DIR, "index.html"))
+else:
+    # Fallback endpoint if running locally without a compiled build
+    @app.get("/")
+    def root():
+        return {"service": "baize-customer (API mode only)", "ok": True}
