@@ -853,10 +853,10 @@ def end_session(table):
     # table blocked from future bookings.
     b = Booking.query.filter(Booking.status == 'active',
              db.or_(Booking.session_id == session.id,
-                    Booking.table_uid == table.uid))
+                    Booking.table_uid == table.uid)).first()
     
     b.update({'status': 'completed'}, synchronize_session=False)
-    
+
     target_url = f"{os.environ.get('CENTRAL_URL')}/api/customer/bookings/sync/{b.sync_id}/completed"
     try:
         with httpx.Client(timeout=5.0) as client:
