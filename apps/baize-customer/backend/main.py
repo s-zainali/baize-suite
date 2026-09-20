@@ -15,9 +15,9 @@ app = FastAPI(title="baize-customer")
 app.add_middleware(CORSMiddleware, allow_origins=config.CORS_ORIGINS,
                    allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
-app.include_router(auth.router)
-app.include_router(clubs.router)
-app.include_router(booking.router)
+app.include_router(auth.router, prefix="/api")
+app.include_router(clubs.router, prefix="/api")
+app.include_router(booking.router, prefix="/api")
 
 DIST_DIR = "../dist"
 
