@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # 2. Copy the package definitions for the workspaces to cache npm install
-COPY packages/ui/package*.json ./packages/ui/
+COPY packages/baize-ui/package*.json ./packages/baize-ui/
 COPY apps/baize-customer/package*.json ./apps/baize-customer/
 COPY apps/baize-customer/frontend/package*.json ./apps/baize-customer/frontend/
 
@@ -14,7 +14,7 @@ COPY apps/baize-customer/frontend/package*.json ./apps/baize-customer/frontend/
 RUN npm ci
 
 # 4. FIX: Copy the actual source files for BOTH the frontend AND the shared packages
-COPY packages/ui/ ./packages/ui/
+COPY packages/baize-ui/ ./packages/baize-ui/
 COPY apps/baize-customer/frontend/ ./apps/baize-customer/frontend/
 
 # 5. Build the frontend app directly using the raw Vite binary to expose hidden logs if it fails
