@@ -7,7 +7,7 @@ COPY package*.json ./
 # Note: If you are using pnpm-workspace.yaml or yarn.lock, copy that here instead
 
 # 2. Copy the package definitions for the UI package and your specific app
-COPY packages/ui/package*.json ./packages/ui/
+COPY packages/baize-ui/package*.json ./packages/baize-ui/
 COPY apps/baize-customer/package*.json ./apps/baize-customer/
 
 # 3. Install dependencies for the monorepo workspaces
