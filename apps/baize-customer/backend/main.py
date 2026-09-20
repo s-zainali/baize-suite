@@ -22,19 +22,17 @@ app.include_router(booking.router, prefix="/api")
 DIST_DIR = "../dist"
 
 if os.path.exists(DIST_DIR):
-    # Mount internal compiled assets (js, css, images)
-    app.mount("/assets", StaticFiles(directory=os.path.join(DIST_DIR, "assets")), name="static")
 
-    # Catch-all route to serve index.html for Vue client-side page routing
+    app.mount("/", StaticFiles(directory=DIST_DIR, html=True), name="frontend")
+
     @app.get("/{catchall:path}")
     def serve_frontend(catchall: str):
-        # Prevent the single-page app fallback from swallowing api calls if someone hits a bad endpoint
-        if catchall.startswith("customer/"):
-            return FileResponse(os.path.join(DIST_DIR, "index.html"))
+        # Prevent swallowing broken API endpoint errors
+        if catchall.startswith("api/"):
+            raise HTTPException(status_code=404, detail="API route not found")
             
         return FileResponse(os.path.join(DIST_DIR, "index.html"))
 else:
-    # Fallback endpoint if running locally without a compiled build
     @app.get("/")
     def root():
         return {"service": "baize-customer (API mode only)", "ok": True}
