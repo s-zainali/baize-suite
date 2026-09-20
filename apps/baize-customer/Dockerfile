@@ -18,7 +18,7 @@ COPY apps/baize-customer/frontend/ ./apps/baize-customer/frontend/
 
 # 5. Build the frontend app using your monorepo workspace structure
 # (If npm workspaces isn't configured at root, you can run: cd apps/baize-customer/frontend && npm run build)
-RUN npm run build --workspace=apps/baize-customer/frontend
+RUN cd apps/baize-customer/frontend && npm run build
 
 # Stage 2: Setup Python Backend & Bundle Static Files
 FROM python:3.11-slim
