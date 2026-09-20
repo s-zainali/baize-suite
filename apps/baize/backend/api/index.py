@@ -851,11 +851,12 @@ def end_session(table):
     # well as the session id: a booking started before its session existed has
     # no session_id, and would otherwise stay 'active' forever and keep the
     # table blocked from future bookings.
-    (Booking.query
-     .filter(Booking.status == 'active',
+    b = Booking.query.filter(Booking.status == 'active',
              db.or_(Booking.session_id == session.id,
                     Booking.table_uid == table.uid))
-     .update({'status': 'completed'}, synchronize_session=False))
+    
+    b.update({'status': 'completed'}, synchronize_session=False)
+    
     target_url = f"{os.environ.get('CENTRAL_URL')}/api/customer/bookings/sync/{b.sync_id}/completed"
     try:
         with httpx.Client(timeout=5.0) as client:
