@@ -855,7 +855,7 @@ def end_session(table):
              db.or_(Booking.session_id == session.id,
                     Booking.table_uid == table.uid)).first()
     
-    b.update({'status': 'completed'}, synchronize_session=False)
+    b.status = 'completed'
 
     target_url = f"{os.environ.get('CENTRAL_URL')}/api/customer/bookings/sync/{b.sync_id}/completed"
     try:
