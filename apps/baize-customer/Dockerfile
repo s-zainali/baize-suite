@@ -14,7 +14,7 @@ COPY apps/baize-customer/package*.json ./apps/baize-customer/
 RUN npm ci
 
 # 4. Copy the actual source files needed for the compilation
-COPY packages/ui/ ./packages/ui/
+COPY packages/baize-ui/ ./packages/baize-ui/
 COPY apps/baize-customer/ ./apps/baize-customer/
 
 # 5. Build your specific frontend application
