@@ -19,7 +19,7 @@ app.include_router(auth.router)
 app.include_router(clubs.router)
 app.include_router(booking.router)
 
-DIST_DIR = "/app/dist"
+DIST_DIR = "../dist"
 
 if os.path.exists(DIST_DIR):
     # Mount internal compiled assets (js, css, images)
