@@ -327,6 +327,43 @@ class LocalCentral(Central):
             raise HTTPException(status_code=500, detail=f"Failed to delete local booking: {str(e)}")
 
         return {"ok": True}
+    
+    def cancel_booking_sync(self, db: Session, sync_id: str) -> dict:
+        b = db.query(Booking).filter(
+            Booking.sync_id == sync_id,
+        ).first()
+
+
+        if not b:
+            raise HTTPException(404, "No such booking.")
+        
+        try:
+            b.deleted_at = dt.datetime.utcnow()
+            b.status = "cancelled"
+            db.commit()
+        except Exception as e:
+            b.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to delete local booking: {str(e)}")
+
+        return {"ok": True}
+    
+    def mark_booking_sync(self, db: Session, sync_id: str) -> dict:
+        b = db.query(Booking).filter(
+            Booking.sync_id == sync_id,
+        ).first()
+
+
+        if not b:
+            raise HTTPException(404, "No such booking.")
+        
+        try:
+            b.status = "completed"
+            db.commit()
+        except Exception as e:
+            b.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to complete local booking: {str(e)}")
+
+        return {"ok": True}
 
 
 class HttpCentral(Central):

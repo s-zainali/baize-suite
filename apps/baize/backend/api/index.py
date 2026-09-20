@@ -7,6 +7,7 @@ import secrets
 import time
 import hmac
 import hashlib
+import httpx
 from flask import Flask, send_from_directory, jsonify, request
 from flask_cors import CORS
 from waitress import serve
@@ -2359,14 +2360,40 @@ def handle_bookings():
 def manage_booking(booking_id):
     b = Booking.query.get_or_404(booking_id)
     if request.method == "DELETE" :
-        require_capability('floor')    
+        require_capability('floor') 
+
         b.status = 'cancelled'
         b.deleted_at = datetime.now()
-        b.deleted_by = _actor()
+        b.deleted_by = _actor()   
+
+        target_url = f"{os.environ.get('CENTRAL_URL')}/api/customer/bookings/sync/{b.sync_id}"
+        try:
+            with httpx.Client(timeout=5.0) as client:
+                res = client.delete(target_url)
+
+                if res.status_code not in (200, 201):
+                    # Parse error message from the remote node
+                    if res.headers.get("content-type") == "application/json":
+                        err_msg = res.json().get("error", res.text)
+                    else:
+                        err_msg = res.text
+                        
+                    # Flask approach: Return a JSON response with the remote status code
+                    return jsonify({
+                        "error": f"Local booking not cancelled because remote node rejected request: {err_msg}"
+                    }), res.status_code
+
+        except httpx.RequestError as e:
+            # Flask approach: Return a 502 Bad Gateway response for connection errors
+            return jsonify({
+                "error": f"Local booking not cancelled because remote node was unreachable: {str(e)}"
+            }), 502
+
     elif request.method == "POST":
         require_capability('floor')
         # Started, not finished. It leaves the dashboard strip but stays visible
         # to the guest as 'active' until the session is stopped and billed.
+        
         b.status = 'active'
         table = PoolTable.query.filter_by(uid=b.table_uid).first()
         if table and table.session_id:
@@ -2386,6 +2413,28 @@ def manage_booking(booking_id):
             # to attach it to.
             b.status = 'booked'
             b.session_id = None
+        target_url = f"{os.environ.get('CENTRAL_URL')}/api/customer/bookings/sync/{b.sync_id}"
+        try:
+            with httpx.Client(timeout=5.0) as client:
+                res = client.post(target_url)
+
+                if res.status_code not in (200, 201):
+                    # Parse error message from the remote node
+                    if res.headers.get("content-type") == "application/json":
+                        err_msg = res.json().get("error", res.text)
+                    else:
+                        err_msg = res.text
+                        
+                    # Flask approach: Return a JSON response with the remote status code
+                    return jsonify({
+                        "error": f"Local booking not started because remote node rejected request: {err_msg}"
+                    }), res.status_code
+
+        except httpx.RequestError as e:
+            # Flask approach: Return a 502 Bad Gateway response for connection errors
+            return jsonify({
+                "error": f"Local booking not started because remote node was unreachable: {str(e)}"
+            }), 502
     db.session.commit()
     return jsonify({'success': True})
         

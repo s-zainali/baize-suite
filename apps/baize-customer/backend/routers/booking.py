@@ -34,3 +34,12 @@ def my_bookings(c: Customer = Depends(current_customer), s: Session = Depends(ge
 @router.delete("/bookings/{booking_id}")
 def cancel_booking(booking_id: int, c: Customer = Depends(current_customer), s: Session = Depends(get_db)):
     return central.cancel_booking(s, c, booking_id)
+
+
+@router.delete("/bookings/sync/{sync_id}")
+def cancel_booking_sync(sync_id: str, s: Session = Depends(get_db)):
+    return central.cancel_booking_sync(s, sync_id)
+
+@router.post("/bookings/sync/{sync_id}")
+def mark_booking_sync(sync_id: str, s: Session = Depends(get_db)):
+    return central.mark_booking_sync(s, sync_id)
