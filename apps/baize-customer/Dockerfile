@@ -28,7 +28,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y libpq-dev gcc && rm -rf /var/lib/apt/lists/*
 
 # Copy backend requirements and install dependencies
-COPY apps/backend/baize-customer/requirements.txt ./backend/
+COPY appsip/baize-customer/backend/requirements.txt ./backend/
 RUN pip install --no-cache-dir -r backend/requirements.txt
 
 # Copy backend source code
