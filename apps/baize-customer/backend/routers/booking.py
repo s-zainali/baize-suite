@@ -40,6 +40,10 @@ def cancel_booking(booking_id: int, c: Customer = Depends(current_customer), s: 
 def cancel_booking_sync(sync_id: str, s: Session = Depends(get_db)):
     return central.cancel_booking_sync(s, sync_id)
 
-@router.post("/bookings/sync/{sync_id}")
+@router.post("/bookings/sync/{sync_id}/active")
 def mark_booking_sync(sync_id: str, s: Session = Depends(get_db)):
-    return central.mark_booking_sync(s, sync_id)
+    return central.mark_booking_sync(s, sync_id, 'active')
+
+@router.post("/bookings/sync/{sync_id}/completed")
+def mark_booking_sync(sync_id: str, s: Session = Depends(get_db)):
+    return central.mark_booking_sync(s, sync_id, 'completed')

@@ -272,6 +272,7 @@ class LocalCentral(Central):
     def my_bookings(self, db: Session, customer) -> list:
         rows = db.query(Booking).filter(
             Booking.customer_id == customer.id,
+            Booking.status not in  ['cancelled', 'completed'],
             Booking.deleted_at.is_(None)
         ).order_by(Booking.start_time).all()
 
@@ -347,17 +348,16 @@ class LocalCentral(Central):
 
         return {"ok": True}
     
-    def mark_booking_sync(self, db: Session, sync_id: str) -> dict:
+    def mark_booking_sync(self, db: Session, sync_id: str, status: str) -> dict:
         b = db.query(Booking).filter(
             Booking.sync_id == sync_id,
         ).first()
-
 
         if not b:
             raise HTTPException(404, "No such booking.")
         
         try:
-            b.status = "completed"
+            b.status = status
             db.commit()
         except Exception as e:
             b.rollback()
