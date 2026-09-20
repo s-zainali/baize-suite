@@ -43,4 +43,4 @@ WORKDIR /app/backend
 ENV PORT=10000
 EXPOSE 10000
 
-CMD uvicorn app:app --host 0.0.0.0 --port $PORT
+CMD uvicorn main:app --host 0.0.0.0 --port $PORT
