@@ -314,13 +314,13 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { qrMatrix, qrSvgPath, easypaisaPayload } from '@/utils/qr.js'
 import { branding , entitlements, loadBranding, loadLicense} from '@/composables/useLicense'
 import { API_URL } from '@/Auth'
 
-loadLicense()
-loadBranding()
+
+onMounted(() => loadLicense(), loadBranding())
 const PRINT_WIDTH_MM = 80
 const PX_TO_MM = 0.264583
 

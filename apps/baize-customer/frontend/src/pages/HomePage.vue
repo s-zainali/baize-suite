@@ -60,6 +60,15 @@
                     </svg>
                     Explore Clubs
                 </button>
+                <button @click="activeTab = 'friends'"
+                    :class="activeTab === 'friends' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-900/40 text-slate-400 border-slate-800/60 hover:text-slate-200'"
+                    class="flex items-center gap-2 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    Friends
+                </button>
             </nav>
 
             <!-- TAB 1: MAIN DASHBOARD VIEW -->
@@ -294,7 +303,7 @@
             </main>
 
             <!-- TAB 2: EXPLORE CLUBS & SEARCH VIEW -->
-            <main v-else class="flex-1 space-y-6">
+            <main v-else-if="activeTab === 'clubs'" class="flex-1 space-y-6">
                 <!-- Search Header Banner -->
                 <section class="rounded-3xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-xl">
                     <div class="max-w-2xl">
@@ -335,9 +344,110 @@
                     </div>
 
                     <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        <ClubCard v-for="club in allClubs":key="club.id" :club="club" @select-club="selectClub(club)"/>
+                        <ClubCard v-for="club in allClubs" :key="club.id" :club="club"
+                            @select-club="selectClub(club)" />
                     </div>
                 </section>
+            </main>
+            <!-- TAB 3: FRIENDS & EXPLORE VIEW -->
+            <main v-else-if="activeTab === 'friends'" class="flex-1 space-y-6">
+                <!-- Search & Find Friends Banner -->
+                <section class="rounded-3xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-xl">
+                    <div class="max-w-2xl">
+                        <h2 class="text-2xl font-black tracking-tight text-white">Find & Connect Friends</h2>
+                        <p class="mt-1 text-xs text-slate-400">Search for players by username or phone number, see who
+                            is active, and invite them to your next session.</p>
+                    </div>
+
+                    <!-- Search Bar -->
+                    <div class="relative mt-5 max-w-xl">
+                        <input v-model="friendSearchQuery" type="text" placeholder="Search friends by name or phone..."
+                            class="w-full rounded-2xl border border-slate-700/80 bg-slate-950/80 py-3.5 pl-11 pr-4 text-xs font-semibold text-white placeholder-slate-500 shadow-inner focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+                        <svg class="absolute left-4 top-3.5 h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                </section>
+
+                <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                    <!-- Main Friends Directory / Search Results -->
+                    <section class="lg:col-span-2 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                {{ friendSearchQuery ? `Search Results (${filteredFriends.length})`
+                                    : 'Your Friends List' }}
+                            </h3>
+                        </div>
+
+                        <div v-if="friendsLoading"
+                            class="py-12 text-center text-xs font-bold text-slate-500 animate-pulse">
+                            Searching players…
+                        </div>
+
+                        <div v-else-if="!filteredFriends.length"
+                            class="rounded-3xl border border-dashed border-slate-800 bg-slate-900/20 py-12 text-center">
+                            <p class="text-xs font-bold text-slate-400">No friends found</p>
+                            <p class="mt-1 text-[10px] text-slate-500">Try searching for another name or phone number.
+                            </p>
+                        </div>
+
+                        <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div v-for="friend in filteredFriends" :key="friend.id"
+                                class="group flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/40 p-4 backdrop-blur-xl transition-all hover:border-slate-700 hover:bg-slate-900/80">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-800 font-black text-emerald-400">
+                                        {{ friend.name.charAt(0) }}
+                                        <span :class="friend.isOnline ? 'bg-emerald-500' : 'bg-slate-600'"
+                                            class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-slate-950"></span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="truncate text-xs font-bold text-slate-100">{{ friend.name }}</p>
+                                        <p class="font-mono text-[10px] text-slate-400">{{ friend.phone }}</p>
+                                    </div>
+                                </div>
+
+                                <button @click="inviteFriend(friend)"
+                                    class="cursor-pointer rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white">
+                                    Invite
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Explore / Suggested Friends Panel -->
+                    <section
+                        class="rounded-3xl border border-slate-800/80 bg-slate-900/40 p-6 backdrop-blur-xl h-fit space-y-4">
+                        <div>
+                            <h3 class="text-xs font-black uppercase tracking-widest text-slate-300">Suggested Players
+                            </h3>
+                            <p class="mt-0.5 text-[10px] text-slate-400">Players recently active in your arena</p>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div v-for="suggested in suggestedFriends" :key="suggested.id"
+                                class="flex items-center justify-between rounded-2xl border border-slate-800/80 bg-slate-950/40 p-3">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <div
+                                        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-[11px] font-black text-slate-300">
+                                        {{ suggested.name.charAt(0) }}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="truncate text-[11px] font-bold text-slate-200">{{ suggested.name }}
+                                        </p>
+                                        <p class="text-[9px] text-slate-500">{{ suggested.mutuals }} mutual friends</p>
+                                    </div>
+                                </div>
+                                <button @click="addFriend(suggested)"
+                                    class="cursor-pointer rounded-lg border border-slate-700 px-2.5 py-1 text-[8px] font-black uppercase tracking-widest text-slate-300 hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-400">
+                                    + Add
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+                </div>
             </main>
 
             <!-- Footer -->
@@ -498,6 +608,43 @@ const stats = computed(() => [
         accent: 'via-amber-500/60',
     },
 ])
+
+// Friends Tab Reactive State
+const friendSearchQuery = ref('')
+const friendsLoading = ref(false)
+
+const friendsList = ref([
+    { id: 1, name: 'Ali Hassan', phone: '+92 300 1234567', isOnline: true },
+    { id: 2, name: 'Bilal Ahmed', phone: '+92 301 9876543', isOnline: false },
+    { id: 3, name: 'Hamza Khan', phone: '+92 321 4567890', isOnline: true }
+])
+
+const suggestedFriends = ref([
+    { id: 101, name: 'Usman Tariq', mutuals: 3 },
+    { id: 102, name: 'Daniyal Malik', mutuals: 1 }
+])
+
+const filteredFriends = computed(() => {
+    if (!friendSearchQuery.value) return friendsList.value
+    const q = friendSearchQuery.value.toLowerCase()
+    return friendsList.value.filter(
+        f => f.name.toLowerCase().includes(q) || f.phone.includes(q)
+    )
+})
+
+function inviteFriend(friend) {
+    activeTab.value = 'clubs'
+}
+
+function addFriend(suggested) {
+    friendsList.value.push({
+        id: suggested.id,
+        name: suggested.name,
+        phone: '+92 3XX XXXXXXX',
+        isOnline: false
+    })
+    suggestedFriends.value = suggestedFriends.value.filter(s => s.id !== suggested.id)
+}
 
 // Dynamic Club Discovery Logic
 const allClubs = ref([])

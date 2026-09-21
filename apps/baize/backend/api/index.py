@@ -855,30 +855,32 @@ def end_session(table):
              db.or_(Booking.session_id == session.id,
                     Booking.table_uid == table.uid)).first()
     
-    b.status = 'completed'
+    if b:
+        b.status = 'completed'
 
-    target_url = f"{os.environ.get('CENTRAL_URL')}/api/customer/bookings/sync/{b.sync_id}/completed"
-    try:
-        with httpx.Client(timeout=5.0) as client:
-            res = client.post(target_url)
+        target_url = f"{os.environ.get('CENTRAL_URL')}/api/customer/bookings/sync/{b.sync_id}/completed"
+        try:
+            with httpx.Client(timeout=5.0) as client:
+                res = client.post(target_url)
 
-            if res.status_code not in (200, 201):
-                # Parse error message from the remote node
-                if res.headers.get("content-type") == "application/json":
-                    err_msg = res.json().get("error", res.text)
-                else:
-                    err_msg = res.text
-                    
-                # Flask approach: Return a JSON response with the remote status code
-                return jsonify({
-                    "error": f"Local booking not started because remote node rejected request: {err_msg}"
-                }), res.status_code
+                if res.status_code not in (200, 201):
+                    # Parse error message from the remote node
+                    if res.headers.get("content-type") == "application/json":
+                        err_msg = res.json().get("error", res.text)
+                    else:
+                        err_msg = res.text
+                        
+                    # Flask approach: Return a JSON response with the remote status code
+                    return jsonify({
+                        "error": f"Local booking not started because remote node rejected request: {err_msg}"
+                    }), res.status_code
 
-    except httpx.RequestError as e:
-        # Flask approach: Return a 502 Bad Gateway response for connection errors
-        return jsonify({
-            "error": f"Local booking not started because remote node was unreachable: {str(e)}"
-        }), 502
+        except httpx.RequestError as e:
+            # Flask approach: Return a 502 Bad Gateway response for connection errors
+            return jsonify({
+                "error": f"Local booking not started because remote node was unreachable: {str(e)}"
+            }), 502
+        
     table.is_active = False
     table.start_time = None
     table.session_id = None
