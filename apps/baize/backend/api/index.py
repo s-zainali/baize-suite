@@ -23,6 +23,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# A local install for a real club is production too, so treat anything that
+# isn't explicitly development as production (fail-closed).
+IS_PROD = (os.environ.get('BAIZE_ENV', '').lower() == 'production'
+           or os.environ.get('DEPLOY_MODE', 'local') in ('hybrid', 'cloud')
+           or os.environ.get('BAIZE_ENV', '').lower() != 'development')
+
 
 # --- SETUP PATHS ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))       
@@ -88,12 +94,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 import secrets as _secrets_mod
 from collections import defaultdict as _defaultdict
 import time as _time
-
-# A local install for a real club is production too, so treat anything that
-# isn't explicitly development as production (fail-closed).
-IS_PROD = (os.environ.get('BAIZE_ENV', '').lower() == 'production'
-           or os.environ.get('DEPLOY_MODE', 'local') in ('hybrid', 'cloud')
-           or os.environ.get('BAIZE_ENV', '').lower() != 'development')
 
 def _require_secret(env_name, weak_default):
     """Return the secret from env. In production, refuse to boot if it's missing

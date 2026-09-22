@@ -69,8 +69,8 @@
                     <!-- rackets: round rubber blade · light grip · black cap. Blade sits in the
                          corner, handle points INWARD. Red top-left, black bottom-right. -->
                     <!-- Red Top-Left Corner Racket -->
-                    <div class="absolute top-1 -left-4 z-[7] rotate-200  pointer-events-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 290"height="40">
+                    <div class="absolute top-1 -left-4 z-50 rotate-200  pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 290"height="50">
                             <!-- Wooden Blade Base / Neck Throat -->
                             <path d="M 118 160 C 118 178 127 195 130 215 L 170 215 C 173 195 182 178 182 160 Z"
                                 fill="#EBDCB9" />
@@ -100,9 +100,11 @@
                         </svg>
                     </div>
 
+                    <!-- Ball -->
+                     <div class="absolute top-10 left-4 h-3 w-3 bg-slate-100 z-50 rounded-full"></div>
                     <!-- Black Bottom-Right Corner Racket -->
-                    <div class="absolute bottom-1 -right-4 z-[7] rotate-20 pointer-events-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 290"height="40">
+                    <div class="absolute bottom-1 -right-4 z-50 rotate-20 pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 290"height="50">
                             <!-- Wooden Blade Base / Neck Throat -->
                             <path d="M 118 160 C 118 178 127 195 130 215 L 170 215 C 173 195 182 178 182 160 Z"
                                 fill="#EBDCB9" />
@@ -110,12 +112,12 @@
                             <!-- Outer Dark Red Edge Tape / Base Rim -->
                             <path
                                 d="M 150 15 C 205 15 238 55 238 107 C 238 153 208 181 182 187 C 168 190 132 190 118 187 C 92 181 62 153 62 107 C 62 55 95 15 150 15 Z"
-                                fill="#000000" />
+                                fill="#9E1B2B" />
 
                             <!-- Main Red Rubber Face -->
                             <path
                                 d="M 150 21 C 200 21 232 58 232 107 C 232 149 203 176 179 181 C 166 184 134 184 121 181 C 97 176 68 149 68 107 C 68 58 100 21 150 21 Z"
-                                fill="#000000" />
+                                fill="#D32238" />
 
                             <!-- Slightly Increased Handle Length -->
                             <path
