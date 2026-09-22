@@ -518,9 +518,10 @@ def enlist_club(club_uuid):
             club_url = (data.get("clubUrl") or "").strip()
             if not club_url:
                 return jsonify({"error": "A public URL is required to register the club."}), 400
-            res = httpx.post(f"{base}/registry/clubs", headers=headers, timeout=10.0, json={
+            res = httpx.post(f"{base}/api/registry/clubs", headers=headers, timeout=10.0, json={
                 "uuid": club.uuid, "clubName": club.club_name, "publicUrl": club_url,
                 "city": club.city, "address": club.address, "country": club.country,
+                "notes": club.notes or "",
             })
             if res.status_code >= 400:
                 return jsonify({"error": f"Central registry rejected the request: {res.text}"}), 502
@@ -528,7 +529,7 @@ def enlist_club(club_uuid):
             _log("club.register", "club", club.uuid,
                  summary=f"{club.club_name} enlisted in central registry")
         else:  # DELETE
-            res = httpx.delete(f"{base}/registry/clubs/{club.uuid}", headers=headers, timeout=10.0)
+            res = httpx.delete(f"{base}/api/registry/clubs/{club.uuid}", headers=headers, timeout=10.0)
             if res.status_code >= 400 and res.status_code != 404:
                 return jsonify({"error": f"Central registry rejected the request: {res.text}"}), 502
             club.registered = False

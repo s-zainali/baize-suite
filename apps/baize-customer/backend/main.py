@@ -18,6 +18,7 @@ app.add_middleware(CORSMiddleware, allow_origins=config.CORS_ORIGINS,
 app.include_router(auth.router, prefix="/api")
 app.include_router(clubs.router, prefix="/api")
 app.include_router(booking.router, prefix="/api")
+app.include_router(registry.router, prefix="/api")
 
 DIST_DIR = "../dist"
 

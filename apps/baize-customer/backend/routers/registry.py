@@ -29,6 +29,7 @@ class ClubIn(BaseModel):
     city: Optional[str] = ""
     address: Optional[str] = ""
     country: Optional[str] = ""
+    notes: Optional[str] = ""
 
 
 @router.post("/clubs", dependencies=[Depends(require_registry_key)])
@@ -43,6 +44,7 @@ def register_club(body: ClubIn, s: Session = Depends(get_db)):
     club.city = body.city or ""
     club.address = body.address or ""
     club.country = body.country or ""
+    club.notes = body.notes or ""
     club.is_active = True
     s.commit()
     return {"ok": True, "uuid": club.uuid, "registered": True}
