@@ -15,7 +15,7 @@ def register(body: SignUp, s: Session = Depends(get_db)):
     if s.query(Customer).filter(Customer.phone == body.phone).first():
         raise HTTPException(409, "That phone is already registered.")
     c = Customer(name=body.name, phone=body.phone, email=body.email,
-                 password_hash=hash_password(body.password), club_uid=config.CLUB_UID)
+                 password_hash=hash_password(body.password))
     s.add(c); s.commit()
     return {"token": make_token(c), "profile": _out(c)}
 
