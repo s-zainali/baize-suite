@@ -5,7 +5,7 @@ import config
 import os
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from routers import auth, clubs, booking, registry
+from routers import auth, clubs, booking, registry, friends
 
 from database import engine, Base
 import models  # noqa: F401 (register tables)
@@ -19,6 +19,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(clubs.router, prefix="/api")
 app.include_router(booking.router, prefix="/api")
 app.include_router(registry.router, prefix="/api")
+app.include_router(friends.router, prefix="/api")
 
 DIST_DIR = "../dist"
 

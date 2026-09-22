@@ -3,6 +3,7 @@ import { reactive, computed } from 'vue'
 import PoolTable from '@/components/PoolTable.vue'
 import ConsoleGame from '@/components/ConsoleGame.vue'
 import Foosball from '@/components/Foosball.vue'
+import TableTennisTable from '@/components/TableTennisTable.vue'
 
 
 /**
@@ -45,7 +46,7 @@ export const typeColor = (k) => metaByKey.value[k]?.color || '#818cf8'
 export const typeBadge = (k) => metaByKey.value[k]?.badge || '?'
 export const rendererFor = (k) => metaByKey.value[k]?.renderer || 'pool'
 
-export const RENDERERS = { pool: PoolTable, playstation: ConsoleGame, xbox: ConsoleGame, pc: ConsoleGame, foosball: Foosball }
+export const RENDERERS = { pool: PoolTable, playstation: ConsoleGame, xbox: ConsoleGame, pc: ConsoleGame, foosball: Foosball, tabletennis: TableTennisTable }
 export const componentFor = (type) => RENDERERS[rendererFor(type)] || PoolTable
 
 // Only station types the club's licence entitles (base types are always

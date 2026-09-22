@@ -2,7 +2,7 @@
 (Matches the club app's tables, including the sync columns.)"""
 import uuid
 import datetime as dt
-from sqlalchemy import Column, Integer, String, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, UniqueConstraint
 from database import Base
 
 class Club(Base):
@@ -59,3 +59,15 @@ class Favourite(Base):
     customer_id = Column(Integer, index=True)
     club_uid = Column(String, index=True)
     created_at = Column(DateTime, default=dt.datetime.utcnow)
+
+
+class Friendship(Base):
+    """A directional request that becomes a mutual friendship once accepted.
+    requester_id sent it; addressee_id received it. status: pending | accepted."""
+    __tablename__ = "friendship"
+    id = Column(Integer, primary_key=True)
+    requester_id = Column(Integer, index=True)
+    addressee_id = Column(Integer, index=True)
+    status = Column(String, default="pending")   # pending | accepted
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    __table_args__ = (UniqueConstraint("requester_id", "addressee_id", name="uq_friend_pair"),)

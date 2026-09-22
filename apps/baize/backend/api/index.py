@@ -2818,6 +2818,8 @@ DEFAULT_TABLE_TYPES = [
     {'key': 'xbox1',          'label': 'Xbox One',       'color': '#22c55e', 'renderer': 'xbox',        'badge': 'XB',  'sort': 8},
     {'key': 'pc',              'label': 'PC',        'color': '#AB47BC', 'renderer': 'pc',        'badge': 'PC',  'sort': 9},
     {'key': 'foosball',       'label': 'Foosball',       'color': '#a3e635', 'renderer': 'foosball',    'badge': 'FB',  'sort': 10},
+    {'key': 'tabletennis',        'label': 'Table Tennis',     'color': '#0b2e59', 'renderer': 'tabletennis', 'badge': 'TT',  'sort': 11},
+    {'key': 'privateTableTennis', 'label': 'VIP Table Tennis', 'color': '#0b2e59', 'renderer': 'tabletennis', 'badge': 'VT',  'sort': 12},
 ]
 
 

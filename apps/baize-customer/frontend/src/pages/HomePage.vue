@@ -1,6 +1,6 @@
 <template>
     <div
-        class="relative min-h-screen overflow-hidden bg-slate-950 text-white selection:bg-emerald-500/30 selection:text-emerald-300">
+        class="relative min-h-screen overflow-hidden bg-slate-900 text-white selection:bg-emerald-500/30 selection:text-emerald-300">
 
         <div class="relative mx-auto flex min-h-screen max-w-7xl flex-col p-4 sm:p-6 lg:p-8">
 
@@ -19,15 +19,15 @@
                 </div>
 
                 <div
-                    class="order-1 col-span-2 flex flex-1 flex-col items-center justify-center gap-2 bg-gradient-to-r from-transparent via-slate-900/80 to-transparent  backdrop-blur-md sm:order-2 sm:col-span-1">
+                    class="order-1 col-span-2 flex flex-1 flex-col items-center justify-center gap-2 bg-gradient-to-r from-transparent via-slate-800/80 to-transparent  backdrop-blur-md sm:order-2 sm:col-span-1">
                     <div
-                        class="h-[1px] w-full rounded-full bg-gradient-to-r from-transparent via-slate-800 to-transparent">
+                        class="h-[1px] w-full rounded-full bg-gradient-to-r from-transparent via-slate-700 to-transparent">
                     </div>
                     <div class="flex items-center gap-3">
                         <img src="/baize_logo_text.png" class="h-8 py-1 object-contain" alt="Baize Logo" />
                     </div>
                     <div
-                        class="h-[1px] w-full rounded-full bg-gradient-to-r from-transparent via-slate-800 to-transparent">
+                        class="h-[1px] w-full rounded-full bg-gradient-to-r from-transparent via-slate-700 to-transparent">
                     </div>
                 </div>
 
@@ -43,8 +43,8 @@
             <!-- View Switcher Tabs (Mobile & Quick Toggle) -->
             <nav class="mb-4 grid grid-cols-2 sm:flex gap-2 border-b border-slate-800/80 pb-3">
                 <button @click="activeTab = 'dashboard'"
-                    :class="activeTab === 'dashboard' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-900/40 text-slate-400 border-slate-800/60 hover:text-slate-200'"
-                    class="flex items-center gap-2 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all">
+                    :class="activeTab === 'dashboard' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-800 text-slate-400 border-slate-700/60 hover:text-slate-200'"
+                    class="flex items-center gap-2 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer">
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -52,8 +52,8 @@
                     Dashboard
                 </button>
                 <button @click="activeTab = 'clubs'"
-                    :class="activeTab === 'clubs' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-900/40 text-slate-400 border-slate-800/60 hover:text-slate-200'"
-                    class="flex items-center gap-2 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all">
+                    :class="activeTab === 'clubs' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-800 text-slate-400 border-slate-700/60 hover:text-slate-200'"
+                    class="flex items-center gap-2 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer">
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -61,7 +61,7 @@
                     Explore Clubs
                 </button>
                 <button @click="activeTab = 'friends'"
-                    :class="activeTab === 'friends' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-900/40 text-slate-400 border-slate-800/60 hover:text-slate-200'"
+                    :class="activeTab === 'friends' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-800 text-slate-400 border-slate-700/60 hover:text-slate-200'"
                     class="flex items-center gap-2 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer">
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -76,7 +76,7 @@
                 <!-- Summary strip -->
                 <section class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                     <div v-for="stat in stats" :key="stat.label"
-                        class="group relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/50 p-4 backdrop-blur-xl transition-all duration-300 hover:border-slate-700/80 hover:bg-slate-900/80"
+                        class="group relative overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 shadow-[] p-4 backdrop-blur-xl transition-all duration-300 hover:border-slate-700/80 hover:bg-slate-700/80"
                         :class="stat.label === 'Owed' ? 'col-span-2 sm:col-span-1' : ''">
                         <span
                             class="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-current to-transparent opacity-70 transition-opacity group-hover:opacity-100"
@@ -95,7 +95,7 @@
 
                     <!-- Bookings -->
                     <section
-                        class="flex h-[28rem] min-h-0 flex-col rounded-3xl border border-slate-800/80 bg-slate-900/40 p-6 backdrop-blur-xl sm:h-[30rem] lg:col-span-2 lg:h-[34rem]">
+                        class="flex h-[28rem] min-h-0 flex-col rounded-3xl border border-slate-700/80 bg-slate-800 p-6 backdrop-blur-xl sm:h-[30rem] lg:col-span-2 lg:h-[34rem]">
                         <div class="flex shrink-0 items-baseline justify-between">
                             <div>
                                 <h2 class="text-lg font-black tracking-tight text-slate-100">Your Bookings</h2>
@@ -115,7 +115,7 @@
                             </div>
 
                             <div v-else-if="!upcoming.length"
-                                class="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed border-slate-800/80 py-10 text-center">
+                                class="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed border-slate-600/80 py-10 text-center">
                                 <p class="text-[11px] font-bold text-slate-400">Nothing booked yet</p>
                                 <p class="mx-auto mt-1 max-w-[15rem] text-[10px] leading-relaxed text-slate-500">
                                     Reserve a table and it'll appear here.
@@ -135,7 +135,7 @@
 
                     <!-- Games -->
                     <section
-                        class="flex h-[28rem] min-h-0 flex-col rounded-3xl border border-slate-800/80 bg-slate-900/40 p-6 backdrop-blur-xl sm:h-[30rem] lg:h-[34rem]"
+                        class="flex h-[28rem] min-h-0 flex-col rounded-3xl border border-slate-700/80 bg-slate-800 p-6 backdrop-blur-xl sm:h-[30rem] lg:h-[34rem]"
                         :class="khata.outstanding ? 'lg:col-span-2' : 'lg:col-span-3'">
                         <div class="flex shrink-0 items-baseline justify-between">
                             <div>
@@ -155,7 +155,7 @@
 
                         <div v-else-if="!games.length" class="mt-5 flex min-h-0 flex-1 items-center justify-center">
                             <div
-                                class="w-full rounded-2xl border border-dashed border-slate-800/80 px-6 py-10 text-center">
+                                class="w-full h-full flex flex-col justify-center items-center rounded-2xl border border-dashed border-slate-600/80 px-6 py-10 text-center">
                                 <p class="text-[11px] font-bold text-slate-400">No games yet</p>
                                 <p class="mx-auto mt-1 max-w-[17rem] text-[10px] leading-relaxed text-slate-500">
                                     Sessions played on a booked table will show up here once finished and billed.
@@ -279,7 +279,7 @@
                 </div>
 
                 <!-- Account -->
-                <section class="mt-4 rounded-3xl border border-slate-800/80 bg-slate-900/40 p-5 backdrop-blur-xl">
+                <section class="mt-4 rounded-3xl border border-slate-700/80 bg-slate-800 p-5 backdrop-blur-xl">
                     <h2 class="mb-3 text-[9px] font-black uppercase tracking-widest text-slate-500">Account</h2>
                     <dl class="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                         <div
@@ -305,7 +305,7 @@
             <!-- TAB 2: EXPLORE CLUBS & SEARCH VIEW -->
             <main v-else-if="activeTab === 'clubs'" class="flex-1 space-y-6">
                 <!-- Search Header Banner -->
-                <section class="rounded-3xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-xl">
+                <section class="rounded-3xl border border-slate-700 bg-slate-800 p-6 backdrop-blur-xl">
                     <div class="max-w-2xl">
                         <h2 class="text-2xl font-black tracking-tight text-white">Find a Baize Arena</h2>
                         <p class="mt-1 text-xs text-slate-400">Discover nearby cue sports arenas, view available tables,
@@ -352,7 +352,7 @@
             <!-- TAB 3: FRIENDS & EXPLORE VIEW -->
             <main v-else-if="activeTab === 'friends'" class="flex-1 space-y-6">
                 <!-- Search & Find Friends Banner -->
-                <section class="rounded-3xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-xl">
+                <section class="rounded-3xl border border-slate-700 bg-slate-800 p-6 backdrop-blur-xl">
                     <div class="max-w-2xl">
                         <h2 class="text-2xl font-black tracking-tight text-white">Find & Connect Friends</h2>
                         <p class="mt-1 text-xs text-slate-400">Search for players by username or phone number, see who
@@ -368,6 +368,38 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
+                    </div>
+                </section>
+
+                <!-- Incoming friend requests -->
+                <section v-if="incomingRequests.length"
+                    class="rounded-3xl border border-emerald-500/20 bg-emerald-500/[0.04] p-5">
+                    <h3 class="mb-3 text-[10px] font-black uppercase tracking-widest text-emerald-400">
+                        Friend requests ({{ incomingRequests.length }})
+                    </h3>
+                    <div class="space-y-2">
+                        <div v-for="req in incomingRequests" :key="req.requestId"
+                            class="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-950/40 p-3">
+                            <div class="flex min-w-0 items-center gap-3">
+                                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-[11px] font-black text-emerald-400">
+                                    {{ req.from.name.charAt(0) }}
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="truncate text-xs font-bold text-slate-100">{{ req.from.name }}</p>
+                                    <p class="font-mono text-[10px] text-slate-400">{{ req.from.phone }}</p>
+                                </div>
+                            </div>
+                            <div class="flex shrink-0 gap-1.5">
+                                <button @click="acceptRequest(req)"
+                                    class="cursor-pointer rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-emerald-300 hover:bg-emerald-500 hover:text-white">
+                                    Accept
+                                </button>
+                                <button @click="declineRequest(req)"
+                                    class="cursor-pointer rounded-xl border border-slate-700 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400 hover:border-rose-500/40 hover:text-rose-300">
+                                    Decline
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -395,10 +427,10 @@
 
                         <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <div v-for="friend in filteredFriends" :key="friend.id"
-                                class="group flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/40 p-4 backdrop-blur-xl transition-all hover:border-slate-700 hover:bg-slate-900/80">
+                                class="group flex items-center justify-between rounded-2xl border border-slate-700 bg-slate-800 p-4 backdrop-blur-xl transition-all hover:border-slate-700 hover:bg-slate-800/80">
                                 <div class="flex items-center gap-3">
                                     <div
-                                        class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-800 font-black text-emerald-400">
+                                        class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 font-black text-emerald-400">
                                         {{ friend.name.charAt(0) }}
                                         <span :class="friend.isOnline ? 'bg-emerald-500' : 'bg-slate-600'"
                                             class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-slate-950"></span>
@@ -409,17 +441,37 @@
                                     </div>
                                 </div>
 
-                                <button @click="inviteFriend(friend)"
-                                    class="cursor-pointer rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white">
-                                    Invite
-                                </button>
+                                <div class="flex shrink-0 items-center gap-1.5">
+                                    <template v-if="friend.status === 'friend'">
+                                        <button @click="inviteFriend(friend)"
+                                            class="cursor-pointer rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-emerald-400 transition-all hover:bg-emerald-500 hover:text-white">
+                                            Invite
+                                        </button>
+                                        <button @click="removeFriend(friend)" title="Remove friend"
+                                            class="cursor-pointer rounded-xl border border-slate-700 px-2 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-500 hover:border-rose-500/40 hover:text-rose-300">
+                                            ✕
+                                        </button>
+                                    </template>
+                                    <button v-else-if="friend.status === 'pending_out'" disabled
+                                        class="cursor-not-allowed rounded-xl border border-slate-700 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-500">
+                                        Requested
+                                    </button>
+                                    <button v-else-if="friend.status === 'pending_in'" @click="sendRequest(friend)"
+                                        class="cursor-pointer rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-emerald-300 hover:bg-emerald-500 hover:text-white">
+                                        Accept
+                                    </button>
+                                    <button v-else @click="sendRequest(friend)"
+                                        class="cursor-pointer rounded-xl border border-slate-700 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-300 hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-400">
+                                        + Add
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </section>
 
                     <!-- Explore / Suggested Friends Panel -->
                     <section
-                        class="rounded-3xl border border-slate-800/80 bg-slate-900/40 p-6 backdrop-blur-xl h-fit space-y-4">
+                        class="rounded-3xl border border-slate-700/80 bg-slate-800 p-6 backdrop-blur-xl h-fit space-y-4">
                         <div>
                             <h3 class="text-xs font-black uppercase tracking-widest text-slate-300">Suggested Players
                             </h3>
@@ -481,7 +533,7 @@
 import { computed, ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { typeLabel, typeColor, formatPhoneDisplay, qrMatrix, qrSvgPath, BookingItem, PoweredByZain, BillingReceipt, useAutoRefresh } from '@baize/ui'
-import { customer, signOut, apiGet } from '../auth.js'
+import { customer, signOut, apiGet, apiPost, apiDelete } from '../auth.js'
 import { fetchClubs, cancelBooking } from '../api.js'
 import ClubCard from '@/components/ClubCard.vue'
 
@@ -609,41 +661,68 @@ const stats = computed(() => [
     },
 ])
 
-// Friends Tab Reactive State
+// ── Friends (API-backed) ──
 const friendSearchQuery = ref('')
 const friendsLoading = ref(false)
+const searching = ref(false)
+const friends = ref([])
+const incomingRequests = ref([])
+const suggestedFriends = ref([])
+const searchResults = ref([])
 
-const friendsList = ref([
-    { id: 1, name: 'Ali Hassan', phone: '+92 300 1234567', isOnline: true },
-    { id: 2, name: 'Bilal Ahmed', phone: '+92 301 9876543', isOnline: false },
-    { id: 3, name: 'Hamza Khan', phone: '+92 321 4567890', isOnline: true }
-])
+const filteredFriends = computed(() =>
+    friendSearchQuery.value.trim().length >= 2 ? searchResults.value : friends.value)
 
-const suggestedFriends = ref([
-    { id: 101, name: 'Usman Tariq', mutuals: 3 },
-    { id: 102, name: 'Daniyal Malik', mutuals: 1 }
-])
-
-const filteredFriends = computed(() => {
-    if (!friendSearchQuery.value) return friendsList.value
-    const q = friendSearchQuery.value.toLowerCase()
-    return friendsList.value.filter(
-        f => f.name.toLowerCase().includes(q) || f.phone.includes(q)
-    )
-})
-
-function inviteFriend(friend) {
-    activeTab.value = 'clubs'
+async function loadFriends() {
+    friendsLoading.value = true
+    try {
+        const [f, r, sug] = await Promise.allSettled([
+            apiGet('/friends'), apiGet('/friends/requests'), apiGet('/friends/suggested'),
+        ])
+        if (f.status === 'fulfilled') friends.value = (f.value.friends || []).map(x => ({ ...x, status: 'friend' }))
+        if (r.status === 'fulfilled') incomingRequests.value = r.value.requests || []
+        if (sug.status === 'fulfilled') suggestedFriends.value = sug.value.suggested || []
+    } finally {
+        friendsLoading.value = false
+    }
 }
 
+let friendSearchTimer = null
+watch(friendSearchQuery, (q) => {
+    clearTimeout(friendSearchTimer)
+    if (q.trim().length < 2) { searchResults.value = []; return }
+    searching.value = true
+    friendSearchTimer = setTimeout(async () => {
+        try {
+            const d = await apiGet(`/friends/search?q=${encodeURIComponent(q.trim())}`)
+            searchResults.value = d.results || []
+        } catch { searchResults.value = [] } finally { searching.value = false }
+    }, 300)
+})
+
+async function sendRequest(person) {
+    try {
+        const d = await apiPost('/friends/requests', { customerId: person.id }, { auth: true })
+        person.status = d.status
+        if (d.status === 'friend') await loadFriends()
+    } catch { /* ignore */ }
+}
+async function acceptRequest(req) {
+    try { await apiPost(`/friends/requests/${req.requestId}/accept`, {}, { auth: true }); await loadFriends() } catch {}
+}
+async function declineRequest(req) {
+    try {
+        await apiPost(`/friends/requests/${req.requestId}/decline`, {}, { auth: true })
+        incomingRequests.value = incomingRequests.value.filter(r => r.requestId !== req.requestId)
+    } catch {}
+}
+async function removeFriend(person) {
+    try { await apiDelete(`/friends/${person.id}`); friends.value = friends.value.filter(f => f.id !== person.id) } catch {}
+}
+function inviteFriend(friend) { activeTab.value = 'clubs' }
 function addFriend(suggested) {
-    friendsList.value.push({
-        id: suggested.id,
-        name: suggested.name,
-        phone: '+92 3XX XXXXXXX',
-        isOnline: false
-    })
-    suggestedFriends.value = suggestedFriends.value.filter(s => s.id !== suggested.id)
+    sendRequest(suggested)
+    suggestedFriends.value = suggestedFriends.value.filter(x => x.id !== suggested.id)
 }
 
 // Dynamic Club Discovery Logic
@@ -680,6 +759,7 @@ watch(clubSearchQuery, () => {
 
 onMounted(() => {
     loadClubs()
+    loadFriends()
 })
 
 function selectClub(club) {

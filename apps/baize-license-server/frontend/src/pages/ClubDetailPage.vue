@@ -228,6 +228,7 @@
     { key: 'xbox', label: 'Xbox' },
     { key: 'pc', label: 'PC' },
     { key: 'foosball', label: 'Foosball' },
+    { key: 'tabletennis', label: 'Table Tennis' },
     { key: 'canteen', label: 'Canteen' },
     { key: 'insights', label: 'Insights' },
     { key: 'bookings', label: 'Bookings' },

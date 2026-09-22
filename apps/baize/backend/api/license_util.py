@@ -349,7 +349,7 @@ def _days_left(expires_at):
 
 
 BASE_MODULES = set()   # base station renderer is "pool" — always allowed, not gated here
-ALL_MODULES = {"playstation", "xbox", "pc", "foosball", "canteen", "insights", "bookings", "payments"}
+ALL_MODULES = {"playstation", "xbox", "pc", "foosball", "tabletennis", "canteen", "insights", "bookings", "payments"}
 
 
 def _verified_token(token):

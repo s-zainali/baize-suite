@@ -52,7 +52,7 @@ ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")                       # vendor m
 ADMIN_JWT_SECRET = os.environ.get("ADMIN_JWT_SECRET", CLUB_JWT_SECRET)  # signs short-lived admin sessions
 ADMIN_SESSION_HOURS = int(os.environ.get("ADMIN_SESSION_HOURS", "12"))
 AUTO_TRIAL_DAYS = int(os.environ.get("AUTO_TRIAL_DAYS", "0"))
-MODULES = {"playstation", "xbox", "pc", "foosball", "canteen", "insights", "bookings", "payments"}   # gated add-ons
+MODULES = {"playstation", "xbox", "pc", "foosball", "tabletennis", "canteen", "insights", "bookings", "payments"}   # gated add-ons
 EXPIRING_SOON_DAYS = int(os.environ.get("EXPIRING_SOON_DAYS", "7"))
 
 

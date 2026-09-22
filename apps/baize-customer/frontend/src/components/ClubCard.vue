@@ -1,6 +1,6 @@
 <template>
 <div 
-    class="group flex flex-col justify-between rounded-2xl border border-slate-800 bg-slate-900/40 p-5 backdrop-blur-xl transition-all hover:border-slate-700 hover:bg-slate-900/80"
+    class="group flex flex-col justify-between rounded-2xl border border-slate-700 bg-slate-800 p-5 backdrop-blur-xl transition-all hover:border-slate-700 hover:bg-slate-700/50"
   >
     <div>
       <div class="flex items-center justify-between">
@@ -18,7 +18,7 @@
       <p class="mt-1 text-[11px] text-slate-400">{{ club.location }}</p>
     </div>
 
-    <div class="mt-5  gap-2 flex items-center justify-end border-t border-slate-800/80 pt-3">
+    <div class="mt-5  gap-2 flex items-center justify-end border-t border-slate-700/80 pt-3">
       <button 
         class="cursor-pointer rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-200 hover:border-emerald-500/50 hover:bg-emerald-600 hover:text-white transition-all"
       >
