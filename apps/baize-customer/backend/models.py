@@ -25,7 +25,6 @@ class Booking(Base):
     sync_id = Column(String)
     club_uid = Column(String)
     branch_uid = Column(String)
-    club_uid = Column(String)
     code = Column(String)
     lounge_uid = Column(String)
     table_uid = Column(String)

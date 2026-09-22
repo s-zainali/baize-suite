@@ -5,7 +5,7 @@ import config
 import os
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from routers import auth, clubs, booking
+from routers import auth, clubs, booking, registry
 
 from database import engine, Base
 import models  # noqa: F401 (register tables)

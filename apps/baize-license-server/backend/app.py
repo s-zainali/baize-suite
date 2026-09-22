@@ -46,6 +46,8 @@ migrate = Migrate(app, db)
 CORS(app, resources={r"/*": {"origins": os.environ.get("CORS_ORIGINS", "*").split(",")}})
 
 CLUB_JWT_SECRET = os.environ.get("CLUB_JWT_SECRET", "change-me-club-secret")
+CENTRAL_URL = os.environ.get("CENTRAL_URL", "")            # baize-customer base URL
+REGISTRY_ADMIN_KEY = os.environ.get("REGISTRY_ADMIN_KEY", "")  # shared with the central app
 ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")                       # vendor master token
 ADMIN_JWT_SECRET = os.environ.get("ADMIN_JWT_SECRET", CLUB_JWT_SECRET)  # signs short-lived admin sessions
 ADMIN_SESSION_HOURS = int(os.environ.get("ADMIN_SESSION_HOURS", "12"))
@@ -498,20 +500,45 @@ def club_detail(club_uuid):
                      sorted(club.licenses, key=lambda l: l.id, reverse=True)],
     })
 
-@app.route("/api/admin/clubs/<club_uuid>/enlist", methods=["POST"])
+@app.route("/api/admin/clubs/<club_uuid>/enlist", methods=["POST", "DELETE"])
 @admin_required
 def enlist_club(club_uuid):
-    data = request.get_json(silent=True) or {}
-    
-    # Access specific fields
-    club_url = data.get("clubUrl")
+    """Enlist (POST) or delist (DELETE) a club in the central customer registry."""
+    club = Club.query.filter_by(uuid=club_uuid).first()
+    if not club:
+        return jsonify({"error": "No club with that UUID."}), 404
+    if not CENTRAL_URL or not REGISTRY_ADMIN_KEY:
+        return jsonify({"error": "Central registry not configured (CENTRAL_URL / REGISTRY_ADMIN_KEY)."}), 503
 
-    if club_url:
-        httpx.post()
-        
-    
-    print(f"Enlisting club {club_uuid} with payload data:", data)
-    return jsonify({"ok": True})
+    base = CENTRAL_URL.rstrip("/")
+    headers = {"X-Registry-Key": REGISTRY_ADMIN_KEY}
+    try:
+        if request.method == "POST":
+            data = request.get_json(silent=True) or {}
+            club_url = (data.get("clubUrl") or "").strip()
+            if not club_url:
+                return jsonify({"error": "A public URL is required to register the club."}), 400
+            res = httpx.post(f"{base}/registry/clubs", headers=headers, timeout=10.0, json={
+                "uuid": club.uuid, "clubName": club.club_name, "publicUrl": club_url,
+                "city": club.city, "address": club.address, "country": club.country,
+            })
+            if res.status_code >= 400:
+                return jsonify({"error": f"Central registry rejected the request: {res.text}"}), 502
+            club.registered = True
+            _log("club.register", "club", club.uuid,
+                 summary=f"{club.club_name} enlisted in central registry")
+        else:  # DELETE
+            res = httpx.delete(f"{base}/registry/clubs/{club.uuid}", headers=headers, timeout=10.0)
+            if res.status_code >= 400 and res.status_code != 404:
+                return jsonify({"error": f"Central registry rejected the request: {res.text}"}), 502
+            club.registered = False
+            _log("club.deregister", "club", club.uuid,
+                 summary=f"{club.club_name} removed from central registry")
+    except httpx.RequestError as e:
+        return jsonify({"error": f"Could not reach the central registry: {e}"}), 502
+
+    db.session.commit()
+    return jsonify({"ok": True, "registered": club.registered})
 
 
 @app.route("/api/admin/clubs/<club_uuid>", methods=["PATCH"])

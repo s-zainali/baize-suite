@@ -29,7 +29,7 @@
                 </div>
                 <input v-if="!registered" v-model="clubPublicURL" placeholder="https://club-baize.onrender.com"
                   class="w-80 bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-sm text-slate-100 tracking-wide font-mono outline-none">
-                <button @click="toggleRegistration()" :disabled="issuing" class="w-30 py-3 rounded-xl text-xs font-black uppercase tracking-widest border disabled:bg-slate-800 disabled:text-slate-500 text-white cursor-pointer px-4"
+                <button @click="toggleRegistration()" :disabled="registering" class="w-30 py-3 rounded-xl text-xs font-black uppercase tracking-widest border disabled:bg-slate-800 disabled:text-slate-500 text-white cursor-pointer px-4"
                 :class="registered? ' bg-rose-900 border-rose-700 hover:border-rose-600' : 'bg-emerald-800 border-emerald-600 hover:border-emerald-500'">
                     {{ registered? 'Deregister' : 'Register' }}
                   </button>
@@ -274,9 +274,26 @@
       toast.success(b.status === 'revoked' ? 'Branch restored.' : 'Branch revoked.'); loadBranches()
     } catch (e) { toast.error(e.message) }
   }
+  const registering = ref(false)
   async function toggleRegistration() {
-    console.log(clubPublicURL.value)
-    const data = await admin.createCustomerRegistry(uuid, clubPublicURL.value)
+    registering.value = true
+    try {
+      if (registered.value) {
+        await admin.removeCustomerRegistry(uuid)
+        toast.success('Club deregistered from the customer app.')
+      } else {
+        const url = clubPublicURL.value.trim()
+        if (!url) { toast.error("Enter the club's public URL first."); return }
+        await admin.createCustomerRegistry(uuid, url)
+        toast.success('Club registered to the customer app.')
+        clubPublicURL.value = ''
+      }
+      await load()   // refresh the registered flag from the server
+    } catch (e) {
+      toast.error(e.message)
+    } finally {
+      registering.value = false
+    }
   }
   async function load() {
     loading.value = true

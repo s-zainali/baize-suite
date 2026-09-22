@@ -12,5 +12,11 @@ CLUB_UID     = os.environ.get("CLUB_UID")               # scope to one club; Non
 CENTRAL_API_URL = os.environ.get("CENTRAL_API_URL")     # e.g. https://central.baize.app
 CENTRAL_API_KEY = os.environ.get("CENTRAL_API_KEY")
 
+# Shared secret for signing calls to club nodes (must match each club's env).
+BRIDGE_SECRET = os.environ.get("BRIDGE_SECRET", "")
+
+# Shared admin key the licence server uses to enlist/delist clubs (registry).
+REGISTRY_ADMIN_KEY = os.environ.get("REGISTRY_ADMIN_KEY", "")
+
 CORS_ORIGINS = [o for o in os.environ.get(
     "CORS_ORIGINS", "http://localhost:5173,http://localhost:5174").split(",") if o]

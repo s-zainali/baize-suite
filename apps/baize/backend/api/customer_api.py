@@ -27,7 +27,7 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 
 import jwt
-from flask import Blueprint, jsonify, request, g
+from flask import Blueprint, jsonify, request, g, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from models import (db, Customer, PasswordResetCode, Booking, PoolTable, Lounge,
@@ -168,6 +168,45 @@ def issue_reset_token(customer):
 
 def _decode(token, audience):
     return jwt.decode(token, CUSTOMER_JWT_SECRET, algorithms=['HS256'], audience=audience)
+
+
+# ── service-to-service bridge auth ────────────────────────────────────────────
+# The customer app (baize-customer) calls availability/bookings on this club
+# node over the public internet. Those calls carry no customer JWT, so we
+# authenticate the *service* with an HMAC signature over a shared secret.
+#   signature = HMAC_SHA256(BRIDGE_SECRET, f"{ts}.{METHOD}.{path}.{sha256(body)}")
+# A 5-minute timestamp window blocks replay. If BRIDGE_SECRET is unset the guard
+# runs in warn-open mode so an un-provisioned install still works — SET
+# BRIDGE_SECRET on the club AND the customer app to actually enforce it.
+import hashlib as _hashlib, hmac as _hmac, time as _time
+
+BRIDGE_SECRET = os.environ.get('BRIDGE_SECRET', '')
+BRIDGE_MAX_SKEW = 300
+
+def require_bridge(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not BRIDGE_SECRET:
+            current_app.logger.warning(
+                'BRIDGE_SECRET unset — %s is UNPROTECTED (set it on both apps to enforce)',
+                request.path)
+            return fn(*args, **kwargs)
+        ts = request.headers.get('X-Baize-Timestamp', '')
+        sig = request.headers.get('X-Baize-Signature', '')
+        if not ts or not sig:
+            return jsonify({'error': 'unauthorized'}), 401
+        try:
+            if abs(_time.time() - int(ts)) > BRIDGE_MAX_SKEW:
+                return jsonify({'error': 'stale request'}), 401
+        except ValueError:
+            return jsonify({'error': 'unauthorized'}), 401
+        body_hash = _hashlib.sha256(request.get_data() or b'').hexdigest()
+        msg = f"{ts}.{request.method.upper()}.{request.path}.{body_hash}".encode()
+        expected = _hmac.new(BRIDGE_SECRET.encode(), msg, _hashlib.sha256).hexdigest()
+        if not _hmac.compare_digest(expected, sig):
+            return jsonify({'error': 'unauthorized'}), 401
+        return fn(*args, **kwargs)
+    return wrapper
 
 
 def require_customer(fn):
@@ -404,6 +443,7 @@ def _parse_date(value):
 
 
 @customer_bp.route('/availability', methods=['GET'])
+@require_bridge
 def availability():
     """Stations plus the busy ranges for one day.
 
@@ -485,6 +525,7 @@ def my_bookings():
 
 
 @customer_bp.route('/bookings', methods=['POST'])
+@require_bridge
 @rate_limit(limit=20, window_seconds=3600)
 def create_booking():
     data = request.json or {}
@@ -501,6 +542,8 @@ def create_booking():
     if start < datetime.now() - timedelta(minutes=1):
         return jsonify({'error': 'That start time has already passed'}), 400
 
+    if not data.get('guestName'):
+        return jsonify({'error': 'A guest name is required'}), 400
     table = PoolTable.query.filter_by(uid=data.get('tableUid')).first()
     if not table:
         return jsonify({'error': 'That station no longer exists'}), 404
@@ -514,16 +557,15 @@ def create_booking():
     if clash:
         return jsonify({'error': 'That station is already booked for this time'}), 409
 
-    print(data.get('syncId'), 'ttrt')
     booking = Booking(
         sync_id=data.get('syncId'),
         branch_id=table.branch_id,   # a booking always belongs to its table's branch
         table_uid=table.uid,
         table_type=table.table_type,
         table_number=table.table_id,
-        guest_name=data.get('guestName') or g.customer.name,
-        phone=data.get('phone') or g.customer.phone,
-        customer_id=data.get('customerId') or g.customer.id,
+        guest_name=data.get('guestName'),
+        phone=data.get('phone'),
+        customer_id=data.get('customerId'),
         start_time=start,
         end_time=end,
         code=generate_booking_code(),
@@ -534,6 +576,7 @@ def create_booking():
 
 
 @customer_bp.route('/bookings/<sync_id>', methods=['DELETE'])
+@require_bridge
 def cancel_booking(sync_id):
     booking = Booking.query.filter(Booking.sync_id == sync_id).first()
     # Filtering by customer_id in the QUERY, not after fetching, so another

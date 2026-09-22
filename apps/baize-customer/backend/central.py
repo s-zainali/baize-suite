@@ -13,9 +13,11 @@ from abc import ABC, abstractmethod
 from typing import Optional
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+import json
 import httpx
 
 import config
+import bridge
 from models import Booking, Club
 
 
@@ -149,9 +151,10 @@ class LocalCentral(Central):
         if branch_uid:
             params["branch"] = branch_uid  # Passes ?branch=... to remote node
 
+        headers = bridge.sign("GET", "/api/customer/availability")
         try:
             with httpx.Client(timeout=5.0) as client:
-                res = client.get(url, params=params)
+                res = client.get(url, params=params, headers=headers)
                 if res.status_code != 200:
                     raise HTTPException(status_code=res.status_code, detail=f"Club node error: {res.text}")
                 resJson = res.json()
@@ -235,16 +238,19 @@ class LocalCentral(Central):
             "customerId": customer.id
         }
 
+        body = json.dumps(payload).encode()
+        headers = {**bridge.sign("POST", "/api/customer/bookings", body),
+                   "Content-Type": "application/json"}
         try:
             with httpx.Client(timeout=5.0) as client:
-                res = client.post(target_url, json=payload)
+                res = client.post(target_url, content=body, headers=headers)
 
                 if res.status_code not in (200, 201):
                     # Node rejected the booking; rollback local booking to keep state synchronized
                     db.delete(b)
                     db.commit()
 
-                    err_msg = res.json().get("error", res.text) if res.headers.get("content-type") == "application/json" else res.text
+                    err_msg = res.json().get("error", res.text) if "application/json" in (res.headers.get("content-type") or "") else res.text
                     raise HTTPException(
                         status_code=res.status_code, 
                         detail=f"Local booking cancelled because remote node rejected request: {err_msg}"
@@ -298,16 +304,18 @@ class LocalCentral(Central):
             raise HTTPException(404, "No such booking.")
         club_uid = b.club_uid
         club = db.query(Club).filter(Club.uuid == club_uid).first()
-        
+        if not club or not getattr(club, "public_url", None):
+            raise HTTPException(status_code=400, detail="Target node URL not configured.")
         target_url = f"{club.public_url.rstrip('/')}/api/customer/bookings/{b.sync_id}"
+        headers = bridge.sign("DELETE", f"/api/customer/bookings/{b.sync_id}")
         try:
             with httpx.Client(timeout=5.0) as client:
-                res = client.delete(target_url)
+                res = client.delete(target_url, headers=headers)
 
                 if res.status_code not in (200, 201):
                     # Node rejected the booking; rollback local booking to keep state synchronized
 
-                    err_msg = res.json().get("error", res.text) if res.headers.get("content-type") == "application/json" else res.text
+                    err_msg = res.json().get("error", res.text) if "application/json" in (res.headers.get("content-type") or "") else res.text
                     raise HTTPException(
                         status_code=res.status_code, 
                         detail=f"Local booking not cancelled because remote node rejected request: {err_msg}"
@@ -324,7 +332,7 @@ class LocalCentral(Central):
             b.status = "cancelled"
             db.commit()
         except Exception as e:
-            b.rollback()
+            db.rollback()
             raise HTTPException(status_code=500, detail=f"Failed to delete local booking: {str(e)}")
 
         return {"ok": True}
@@ -343,7 +351,7 @@ class LocalCentral(Central):
             b.status = "cancelled"
             db.commit()
         except Exception as e:
-            b.rollback()
+            db.rollback()
             raise HTTPException(status_code=500, detail=f"Failed to delete local booking: {str(e)}")
 
         return {"ok": True}
@@ -396,9 +404,10 @@ class HttpCentral(Central):
 
 
 def get_central() -> Central:
-    """Chosen once at import by config. Swap standalone↔central via env only."""
-    if config.CENTRAL_API_URL:
-        return HttpCentral(config.CENTRAL_API_URL, config.CENTRAL_API_KEY)
+    """LocalCentral IS the network layer now: it reads the club registry from
+    this app's DB and fans out to each club node over the signed bridge. The
+    old HttpCentral (single upstream API) is kept only as a stub and is never
+    selected — routing per-club by public_url replaced it."""
     return LocalCentral()
 
 
