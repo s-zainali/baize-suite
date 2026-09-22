@@ -1,7 +1,17 @@
 <template>
     <div
-        class="relative min-h-screen overflow-hidden bg-slate-900 text-white selection:bg-emerald-500/30 selection:text-emerald-300">
+        class="relative min-h-screen overflow-clip bg-slate-900 text-white selection:bg-emerald-500/30 selection:text-emerald-300">
 
+        <div
+            class="sm:hidden mt-4 sticky top-0 z-100 flex flex-1 flex-col items-center justify-center gap-2 bg-gradient-to-r from-transparent via-slate-800/80 to-transparent  backdrop-blur-md sm:order-2 sm:col-span-1">
+            <div class="h-[1px] w-full rounded-full bg-gradient-to-r from-transparent via-slate-700 to-transparent">
+            </div>
+            <div class="flex items-center gap-3">
+                <img src="/baize_logo_text.png" class="h-8 py-1 object-contain" alt="Baize Logo" />
+            </div>
+            <div class="h-[1px] w-full rounded-full bg-gradient-to-r from-transparent via-slate-700 to-transparent">
+            </div>
+        </div>
         <div class="relative mx-auto flex min-h-screen flex-col p-4 sm:p-6 lg:p-8">
 
             <!-- Header -->
@@ -19,7 +29,7 @@
                 </div>
 
                 <div
-                    class=" order-1 col-span-2 flex flex-1 flex-col items-center justify-center gap-2 bg-gradient-to-r from-transparent via-slate-800/80 to-transparent  backdrop-blur-md sm:order-2 sm:col-span-1">
+                    class=" order-1 col-span-2 hidden sm:flex flex-1 flex-col items-center justify-center gap-2 bg-gradient-to-r from-transparent via-slate-800/80 to-transparent  backdrop-blur-md sm:order-2 sm:col-span-1">
                     <div
                         class="h-[1px] w-full rounded-full bg-gradient-to-r from-transparent via-slate-700 to-transparent">
                     </div>
@@ -296,7 +306,7 @@
                             class="flex items-center justify-between rounded-xl border border-slate-800/80 bg-slate-950/40 px-4 py-3">
                             <dt class="text-[10px] font-black uppercase tracking-widest text-slate-500">Email</dt>
                             <dd class="truncate pl-3 text-xs font-bold text-slate-200">{{ customer.profile?.email || '—'
-                                }}</dd>
+                            }}</dd>
                         </div>
                     </dl>
                 </section>
@@ -381,7 +391,8 @@
                         <div v-for="req in incomingRequests" :key="req.requestId"
                             class="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-950/40 p-3">
                             <div class="flex min-w-0 items-center gap-3">
-                                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-[11px] font-black text-emerald-400">
+                                <div
+                                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-[11px] font-black text-emerald-400">
                                     {{ req.from.name.charAt(0) }}
                                 </div>
                                 <div class="min-w-0">
@@ -708,16 +719,16 @@ async function sendRequest(person) {
     } catch { /* ignore */ }
 }
 async function acceptRequest(req) {
-    try { await apiPost(`/friends/requests/${req.requestId}/accept`, {}, { auth: true }); await loadFriends() } catch {}
+    try { await apiPost(`/friends/requests/${req.requestId}/accept`, {}, { auth: true }); await loadFriends() } catch { }
 }
 async function declineRequest(req) {
     try {
         await apiPost(`/friends/requests/${req.requestId}/decline`, {}, { auth: true })
         incomingRequests.value = incomingRequests.value.filter(r => r.requestId !== req.requestId)
-    } catch {}
+    } catch { }
 }
 async function removeFriend(person) {
-    try { await apiDelete(`/friends/${person.id}`); friends.value = friends.value.filter(f => f.id !== person.id) } catch {}
+    try { await apiDelete(`/friends/${person.id}`); friends.value = friends.value.filter(f => f.id !== person.id) } catch { }
 }
 function inviteFriend(friend) { activeTab.value = 'clubs' }
 function addFriend(suggested) {
