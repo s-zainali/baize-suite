@@ -40,7 +40,8 @@ DEFAULT_RATES = {
 app = Flask(__name__, 
             static_folder=os.path.join(DIST_DIR, 'assets'), 
             template_folder=DIST_DIR)
-CORS(app)
+_cors_origins = [o.strip() for o in os.environ.get('CORS_ORIGINS', '').split(',') if o.strip()]
+CORS(app, resources={r"/*": {"origins": _cors_origins if _cors_origins else ('*' if not IS_PROD else [])}})
 
 
 @app.errorhandler(Exception)
@@ -84,10 +85,33 @@ if not db_url:
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace('postgres://', 'postgresql://', 1)
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'supersecret'  # Secret key for session management and JWT
-app.config['SECURITY_PASSWORD_SALT'] = 'salt'  # Salt for hashing passwords
+import secrets as _secrets_mod
+from collections import defaultdict as _defaultdict
+import time as _time
+
+# A local install for a real club is production too, so treat anything that
+# isn't explicitly development as production (fail-closed).
+IS_PROD = (os.environ.get('BAIZE_ENV', '').lower() == 'production'
+           or os.environ.get('DEPLOY_MODE', 'local') in ('hybrid', 'cloud')
+           or os.environ.get('BAIZE_ENV', '').lower() != 'development')
+
+def _require_secret(env_name, weak_default):
+    """Return the secret from env. In production, refuse to boot if it's missing
+    or still the shipped default. In development, fall back but warn loudly."""
+    val = os.environ.get(env_name)
+    if val and val != weak_default:
+        return val
+    if IS_PROD:
+        raise RuntimeError(
+            f"[SECURITY] {env_name} must be set to a strong value in production "
+            f"(e.g. `openssl rand -hex 32`). Refusing to start.")
+    print(f"\u26a0\ufe0f  [DEV] {env_name} unset/weak — using an insecure default. Never do this in production.")
+    return val or weak_default
+
+app.config['SECRET_KEY'] = _require_secret('SECRET_KEY', 'supersecret')
+app.config['SECURITY_PASSWORD_SALT'] = _require_secret('SECURITY_PASSWORD_SALT', 'salt')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'SECRETKEYFORENCRYPTION')
+app.config['JWT_SECRET_KEY'] = _require_secret('JWT_SECRET_KEY', 'SECRETKEYFORENCRYPTION')
 # Staff tokens are stamped and checked with aud="staff". A customer token is
 # signed with a different key entirely (see customer_api.py), so it fails
 # signature verification here before the audience is even considered — the two
@@ -904,10 +928,25 @@ def resume_session(table):
 
 # --- ROUTES ---
 
+_login_attempts = _defaultdict(list)     # (ip, username) -> [timestamps]
+_LOGIN_MAX, _LOGIN_WINDOW = 8, 300       # 8 tries / 5 min, then cool down
+
+def _login_throttled(key):
+    now = _time.time()
+    recent = [t for t in _login_attempts[key] if now - t < _LOGIN_WINDOW]
+    _login_attempts[key] = recent
+    if len(recent) >= _LOGIN_MAX:
+        return True
+    recent.append(now)
+    return False
+
 @app.route('/api/auth/login', methods=['POST'])
 def auth_login():
     data = request.json or {}
-    user = User.query.filter_by(username=data.get('username', '').strip(), deleted_at=None).first()
+    username = data.get('username', '').strip()
+    if _login_throttled((request.remote_addr or '?', username.lower())):
+        return jsonify({'error': 'Too many attempts. Try again in a few minutes.'}), 429
+    user = User.query.filter_by(username=username, deleted_at=None).first()
     if not user or not user.check_password(data.get('password', '')):
         return jsonify({'error': 'Invalid username or password'}), 401
     token = create_access_token(
@@ -1866,6 +1905,19 @@ def confirm_payment(token):
         # Re-scanning a paid code shouldn't double-ping the till.
         return jsonify({'payment': intent_json(intent, include_url=False), 'alreadyPaid': True})
 
+    # On the automated-payments tier, settlement MUST come from the signed
+    # gateway webhook — never from the (unauthenticated) caller. Only branches
+    # without the 'payments' module use manual, caller-asserted confirmation.
+    _bid = None
+    if intent.log_id:
+        _lg = ActivityLog.query.get(intent.log_id)
+        _bid = _lg.branch_id if _lg else None
+    elif intent.canteen_order_id:
+        _o = CanteenOrder.query.get(intent.canteen_order_id)
+        _bid = _o.branch_id if _o else None
+    if _bid is not None and 'payments' in _features_for_branch(_bid):
+        return jsonify({'error': 'This payment is confirmed by the payment gateway.'}), 403
+
     data = request.json or {}
     method = data.get('method') if data.get('method') in PAYMENT_METHODS_PUBLIC else 'easypaisa'
     intent.method = method
@@ -2728,7 +2780,7 @@ def staff_spa(path):
         abort(404)
     return send_from_directory(DIST_DIR, 'staff.html')
 
-WEBHOOK_SECRET = os.getenv('EASYPAISA_WEBHOOK_SECRET', 'your_shared_secret_key')
+WEBHOOK_SECRET = _require_secret('EASYPAISA_WEBHOOK_SECRET', 'your_shared_secret_key')
 
 @app.route('/webhooks/easypaisa', methods=['POST'])
 def easypaisa_webhook():
@@ -2859,10 +2911,11 @@ def seed_rates():
 def seed_default_owner():
             if User.query.count() == 0:
                 owner = User(username='owner', role='owner')
-                owner.set_password('change-me-now')
+                _pw = os.environ.get('OWNER_INITIAL_PASSWORD') or _secrets_mod.token_urlsafe(12)
+                owner.set_password(_pw)
                 db.session.add(owner)
                 db.session.commit()
-                print('⚠️  Created default account  owner / change-me-now  — LOG IN AND CHANGE IT.')
+                print(f'⚠️  Created default account  owner / {_pw}  — LOG IN AND CHANGE IT.')
 
 # --- MIGRATION ---
 

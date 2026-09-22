@@ -21,6 +21,7 @@ import jwt
 from flask import Flask, g, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+import hmac
 from argon2 import PasswordHasher
 from argon2.exceptions import Argon2Error
 from dotenv import load_dotenv
@@ -43,13 +44,25 @@ db = SQLAlchemy(app)
 
 migrate = Migrate(app, db)
 
-CORS(app, resources={r"/*": {"origins": os.environ.get("CORS_ORIGINS", "*").split(",")}})
+_cors = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()]
+CORS(app, resources={r"/*": {"origins": _cors if _cors else (["*"] if os.environ.get("BAIZE_ENV","").lower()=="development" else [])}})
 
-CLUB_JWT_SECRET = os.environ.get("CLUB_JWT_SECRET", "change-me-club-secret")
+IS_PROD = os.environ.get("BAIZE_ENV", "").lower() != "development"
+
+def _require_secret(name, weak_default):
+    val = os.environ.get(name)
+    if val and val != weak_default:
+        return val
+    if IS_PROD:
+        raise RuntimeError(f"[SECURITY] {name} must be set to a strong value in production. Refusing to start.")
+    print(f"WARNING: {name} unset/weak — insecure default (dev only).")
+    return val or weak_default
+
+CLUB_JWT_SECRET = _require_secret("CLUB_JWT_SECRET", "change-me-club-secret")
 CENTRAL_URL = os.environ.get("CENTRAL_URL", "")            # baize-customer base URL
 REGISTRY_ADMIN_KEY = os.environ.get("REGISTRY_ADMIN_KEY", "")  # shared with the central app
 ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")                       # vendor master token
-ADMIN_JWT_SECRET = os.environ.get("ADMIN_JWT_SECRET", CLUB_JWT_SECRET)  # signs short-lived admin sessions
+ADMIN_JWT_SECRET = os.environ.get("ADMIN_JWT_SECRET") or CLUB_JWT_SECRET  # signs short-lived admin sessions
 ADMIN_SESSION_HOURS = int(os.environ.get("ADMIN_SESSION_HOURS", "12"))
 AUTO_TRIAL_DAYS = int(os.environ.get("AUTO_TRIAL_DAYS", "0"))
 MODULES = {"playstation", "xbox", "pc", "foosball", "tabletennis", "canteen", "insights", "bookings", "payments"}   # gated add-ons
@@ -272,7 +285,7 @@ def _admin_ok():
                 return True
         except jwt.InvalidTokenError:
             pass
-    return bool(ADMIN_TOKEN) and request.headers.get("X-Admin-Token") == ADMIN_TOKEN
+    return bool(ADMIN_TOKEN) and hmac.compare_digest(request.headers.get("X-Admin-Token") or "", ADMIN_TOKEN)
 
 
 def admin_required(fn):
@@ -430,7 +443,7 @@ def add_device():
 def admin_login():
     if not ADMIN_TOKEN:
         return jsonify({"error": "Admin access is not configured on this server."}), 503
-    if (request.json or {}).get("token") != ADMIN_TOKEN:
+    if not hmac.compare_digest(str((request.json or {}).get("token") or ""), ADMIN_TOKEN):
         return jsonify({"error": "Invalid admin token."}), 401
     token = jwt.encode({"role": "admin", "exp": _utcnow() + dt.timedelta(hours=ADMIN_SESSION_HOURS)},
                        ADMIN_JWT_SECRET, algorithm="HS256")
@@ -948,7 +961,7 @@ if __name__ == "__main__":
 
     if args.dev:
         print(f"Starting DEV server on {args.host}:{args.port}...")
-        app.run(host=args.host, port=args.port, debug=True)
+        app.run(host=args.host, port=args.port, debug=True, use_debugger=False)
     else:
         print(f"Starting PRODUCTION server on {args.host}:{args.port}...")
         try:

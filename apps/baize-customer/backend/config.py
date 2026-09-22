@@ -4,7 +4,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DATABASE_URL = os.environ["DATABASE_URL"].replace("postgres://", "postgresql://", 1)
-JWT_SECRET   = os.environ.get("CUSTOMER_JWT_SECRET", "dev-customer-secret")
+IS_PROD = os.environ.get("BAIZE_ENV", "").lower() != "development"
+
+def _require_secret(name, weak_default=""):
+    val = os.environ.get(name, "")
+    if val and val != weak_default:
+        return val
+    if IS_PROD:
+        raise RuntimeError(f"[SECURITY] {name} must be set to a strong value in production. Refusing to start.")
+    return val or weak_default
+
+JWT_SECRET   = _require_secret("CUSTOMER_JWT_SECRET", "dev-customer-secret")
 CLUB_UID     = os.environ.get("CLUB_UID")               # scope to one club; None = all (dev)
 
 # ── central (baize) connection — see central.py ──

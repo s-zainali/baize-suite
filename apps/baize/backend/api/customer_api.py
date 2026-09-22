@@ -49,7 +49,17 @@ def set_pay_link(fn):
 
 # Separate from the staff JWT key ON PURPOSE. If these are ever the same value,
 # the audience claim is the only thing standing between a customer and the till.
-CUSTOMER_JWT_SECRET = os.environ.get('CUSTOMER_JWT_SECRET') or 'dev-only-customer-secret-change-me'
+IS_PROD = os.environ.get('BAIZE_ENV', '').lower() != 'development'
+
+def _require_secret(env_name, weak_default):
+    val = os.environ.get(env_name)
+    if val and val != weak_default:
+        return val
+    if IS_PROD:
+        raise RuntimeError(f"[SECURITY] {env_name} must be set to a strong value in production. Refusing to start.")
+    return val or weak_default
+
+CUSTOMER_JWT_SECRET = _require_secret('CUSTOMER_JWT_SECRET', 'dev-only-customer-secret-change-me')
 CUSTOMER_AUDIENCE = 'customer'
 RESET_AUDIENCE = 'customer-reset'
 
@@ -187,8 +197,11 @@ def require_bridge(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         if not BRIDGE_SECRET:
+            if IS_PROD:
+                current_app.logger.error('BRIDGE_SECRET unset in production — refusing %s', request.path)
+                return jsonify({'error': 'service auth not configured'}), 503
             current_app.logger.warning(
-                'BRIDGE_SECRET unset — %s is UNPROTECTED (set it on both apps to enforce)',
+                'BRIDGE_SECRET unset — %s is UNPROTECTED (dev only; set it on both apps to enforce)',
                 request.path)
             return fn(*args, **kwargs)
         ts = request.headers.get('X-Baize-Timestamp', '')
