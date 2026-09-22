@@ -57,6 +57,7 @@ export const useAdmin = defineStore('admin', () => {
     stats: () => api('/api/admin/stats'),
     clubs: (params) => api(`/api/admin/clubs${qs(params)}`),
     club: (uuid) => api(`/api/admin/clubs/${uuid}`),
+    createCustomerRegistry: (clubUid, url) => api(`/api/admin/clubs/${clubUid}/enlist`, {method : 'POST', body: {clubUrl: url}}),
     editClub: (uuid, body) => api(`/api/admin/clubs/${uuid}`, { method: 'PATCH', body }),
     issue: (body) => api('/api/admin/issue', { method: 'POST', body }),
     licenses: (params) => api(`/api/admin/licenses${qs(params)}`),

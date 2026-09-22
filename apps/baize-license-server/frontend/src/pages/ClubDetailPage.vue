@@ -17,6 +17,23 @@
               <h1 class="text-2xl font-black text-white tracking-tight">{{ club.clubName }}</h1>
               <p class="text-xs font-mono text-slate-500">{{ club.uuid }}</p>
             </div>
+            <!-- Customer Registry -->
+            <div class="transition duration-300 ease-in-out flex gap-4 items-center bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 shadow-2xl">
+                <div class="flex flex-col gap-1">
+                    <h2 class="text-sm font-black text-white uppercase tracking-wider text-nowrap">Customer App Visibility</h2>
+                    <div class="flex gap-2 items-center">
+                        <div class="relative w-2 h-2 rounded" :class="registered ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'">
+                        </div>
+                        <p class="text-xs" :class="registered ? 'text-emerald-500' : 'text-rose-500'">{{ registered? 'Club Active' : 'Not registered' }}</p>
+                    </div>
+                </div>
+                <input v-if="!registered" v-model="clubPublicURL" placeholder="https://club-baize.onrender.com"
+                  class="w-80 bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-sm text-slate-100 tracking-wide font-mono outline-none">
+                <button @click="toggleRegistration()" :disabled="issuing" class="w-30 py-3 rounded-xl text-xs font-black uppercase tracking-widest border disabled:bg-slate-800 disabled:text-slate-500 text-white cursor-pointer px-4"
+                :class="registered? ' bg-rose-900 border-rose-700 hover:border-rose-600' : 'bg-emerald-800 border-emerald-600 hover:border-emerald-500'">
+                    {{ registered? 'Deregister' : 'Register' }}
+                  </button>
+            </div>
             <div class="flex gap-2 shrink-0">
               <button @click="editing = true" class="px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider bg-slate-800 text-slate-200 hover:bg-slate-700 cursor-pointer">Edit</button>
               <button @click="toggleSuspend" class="px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider cursor-pointer"
@@ -197,6 +214,8 @@
   const busy = ref(false)
   const days = ref(365)
   const branches = ref([])
+  const registered = ref(false)
+  const clubPublicURL = ref('')
   const newBranch = reactive({ name: '', address: '', modules: [] })
   const selectedId = ref(null)
   const selectedBranch = computed(() => branches.value.find((b) => b.id === selectedId.value) || null)
@@ -255,10 +274,15 @@
       toast.success(b.status === 'revoked' ? 'Branch restored.' : 'Branch revoked.'); loadBranches()
     } catch (e) { toast.error(e.message) }
   }
+  async function toggleRegistration() {
+    console.log(clubPublicURL.value)
+    const data = await admin.createCustomerRegistry(uuid, clubPublicURL.value)
+  }
   async function load() {
     loading.value = true
     try {
       const data = await admin.club(uuid)
+      registered.value = data.registered
       club.value = data.club; devices.value = data.devices; licenses.value = data.licenses
       loadBranches()
       deviceLock.value = (data.club?.plan !== 'online')

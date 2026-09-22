@@ -8,7 +8,7 @@
 import { reactive, computed } from 'vue'
 
 export const CUSTOMER_API = import.meta.env.VITE_API_URL
-    ? `${import.meta.env.VITE_API_URL}/customer`
+    ? `${import.meta.env.VITE_API_URL}/api/customer`
     : '/api/customer'
 
 // Deliberately NOT 'ls_token'. Sharing that key would let a stale staff session

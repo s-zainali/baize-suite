@@ -24,6 +24,9 @@ from flask_sqlalchemy import SQLAlchemy
 from argon2 import PasswordHasher
 from argon2.exceptions import Argon2Error
 from dotenv import load_dotenv
+from flask_migrate import Migrate
+import argparse
+import httpx
 
 import signing
 
@@ -37,6 +40,8 @@ app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ["DATABASE_URL"]
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
+
+migrate = Migrate(app, db)
 
 CORS(app, resources={r"/*": {"origins": os.environ.get("CORS_ORIGINS", "*").split(",")}})
 
@@ -90,7 +95,7 @@ class Club(db.Model):
     notes = db.Column(db.Text, default="")
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=_utcnow)
-
+    registered = db.Column(db.Boolean, default=False)
     devices = db.relationship("Device", backref="club", cascade="all, delete-orphan")
     licenses = db.relationship("License", backref="club", cascade="all, delete-orphan")
     branches = db.relationship("Branch", backref="club", cascade="all, delete-orphan")
@@ -486,11 +491,27 @@ def club_detail(club_uuid):
     if not club:
         return jsonify({"error": "No club with that UUID."}), 404
     return jsonify({
+        "registered": club.registered,
         "club": club.public(),
         "devices": [dv.public() for dv in club.devices],
         "licenses": [lic.public(with_token=True) for lic in
                      sorted(club.licenses, key=lambda l: l.id, reverse=True)],
     })
+
+@app.route("/api/admin/clubs/<club_uuid>/enlist", methods=["POST"])
+@admin_required
+def enlist_club(club_uuid):
+    data = request.get_json(silent=True) or {}
+    
+    # Access specific fields
+    club_url = data.get("clubUrl")
+
+    if club_url:
+        httpx.post()
+        
+    
+    print(f"Enlisting club {club_uuid} with payload data:", data)
+    return jsonify({"ok": True})
 
 
 @app.route("/api/admin/clubs/<club_uuid>", methods=["PATCH"])
@@ -890,34 +911,48 @@ def serve_spa(path):
     return send_from_directory(DIST_DIR, "index.html")
 
 
-def _ensure_columns():
-    """Add columns introduced after a table was first created. `create_all`
-    only makes missing *tables*, never new columns on an existing one — so a
-    live DB (e.g. Render Postgres) would 500 on any query for a model whose new
-    column the table lacks. This inspects the real schema and adds what's missing
-    (idempotent, dialect-agnostic)."""
-    from sqlalchemy import inspect as _inspect, text as _text
-    wanted = {
-        "branch": [("address", "VARCHAR(255) DEFAULT ''")],
-    }
-    insp = _inspect(db.engine)
-    for table, cols in wanted.items():
-        if not insp.has_table(table):
-            continue
-        existing = {c["name"] for c in insp.get_columns(table)}
-        for name, ddl in cols:
-            if name in existing:
-                continue
-            try:
-                db.session.execute(_text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}"))
-                db.session.commit()
-            except Exception:
-                db.session.rollback()
-
-
-with app.app_context():
-    db.create_all()   # creates missing tables (incl. admin_event); see README on migrations
-    _ensure_columns()  # add columns added after a table already existed
-
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8090)))
+    parser = argparse.ArgumentParser(description="Run the Baize licensing server.")
+    parser.add_argument("--dev", action="store_true", help="Run using the Flask development server")
+    parser.add_argument("--host", default="0.0.0.0", help="Host address to bind to")
+    parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", 8090)), help="Port number")
+    args = parser.parse_args()
+
+    if args.dev:
+        print(f"Starting DEV server on {args.host}:{args.port}...")
+        app.run(host=args.host, port=args.port, debug=True)
+    else:
+        print(f"Starting PRODUCTION server on {args.host}:{args.port}...")
+        try:
+            # Unix / Linux / macOS (Gunicorn)
+            from gunicorn.app.base import BaseApplication
+
+            class StandaloneApplication(BaseApplication):
+                def __init__(self, app, options=None):
+                    self.options = options or {}
+                    self.application = app
+                    super().__init__()
+
+                def load_config(self):
+                    for key, value in self.options.items():
+                        if key in self.cfg.settings and value is not None:
+                            self.cfg.set(key.lower(), value)
+
+                def load(self):
+                    return self.application
+
+            options = {
+                "bind": f"{args.host}:{args.port}",
+                "workers": int(os.environ.get("WEB_CONCURRENCY", 4)),
+                "loglevel": "info",
+            }
+            StandaloneApplication(app, options).run()
+
+        except ImportError:
+            # Fallback for Windows or systems without Gunicorn (Waitress)
+            try:
+                from waitress import serve
+                serve(app, host=args.host, port=args.port)
+            except ImportError:
+                print("Production WSGI server (gunicorn/waitress) not installed. Falling back to Flask dev server...")
+                app.run(host=args.host, port=args.port)
