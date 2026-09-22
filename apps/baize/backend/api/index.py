@@ -374,9 +374,11 @@ def _revoked_token(header, payload):
 #
 # Splitting later is a config change, not a rewrite — which only holds because
 # the customer code is a self-contained blueprint.
-APP_ROLE = os.environ.get('APP_ROLE', 'all').lower()
-SERVE_STAFF = APP_ROLE in ('all', 'staff')
-SERVE_CUSTOMER = APP_ROLE in ('all', 'customer')
+# The customer booking portal is now its own app (baize-customer). This process
+# is staff-only. customer_api still registers below because the central app
+# calls it (bridge) for availability/bookings.
+SERVE_STAFF = True
+SERVE_CUSTOMER = True   # keeps the customer_api blueprint + /api/customer bridge mounted
 
 if SERVE_CUSTOMER:
     import customer_api
@@ -397,19 +399,6 @@ if SERVE_STAFF:
             return ''
 
 
-@app.before_request
-def enforce_deployment_role():
-    """Hard gate on the whole staff surface when this process is customer-only.
-
-    The staff routes are defined at module scope, so they always exist as Flask
-    rules. This makes them unreachable rather than merely unauthorised.
-    """
-    path = request.path
-    if not SERVE_STAFF and path.startswith('/api/') and not path.startswith('/api/customer'):
-        return jsonify({'error': 'Not found'}), 404
-    if not SERVE_CUSTOMER and path.startswith('/api/customer'):
-        return jsonify({'error': 'Not found'}), 404
-    return None
 
 
 # --- SESSION / BILLING ENGINE ---
@@ -2768,18 +2757,6 @@ def add_lounge():
     db.session.commit()
     return jsonify({'success': True, 'id': lounge.uid, 'name': lounge.name})
 
-@app.route('/staff', defaults={'path': ''})
-@app.route('/staff/<path:path>')
-def staff_spa(path):
-    """The staff app: a SEPARATE build artifact, reachable only under /staff.
-
-    A guest at / never receives it — no dashboard components, no staff route
-    table, no till endpoints listed in their JavaScript.
-    """
-    if not SERVE_STAFF:
-        abort(404)
-    return send_from_directory(DIST_DIR, 'staff.html')
-
 WEBHOOK_SECRET = _require_secret('EASYPAISA_WEBHOOK_SECRET', 'your_shared_secret_key')
 
 @app.route('/webhooks/easypaisa', methods=['POST'])
@@ -2844,17 +2821,16 @@ def api_not_found(path):
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
-def customer_spa(path):
-    """Everything that isn't /staff or /api is the customer portal."""
-    if path.startswith(('api/', 'staff', 'staff/')):
+def spa(path):
+    """Serve the frontend. The staff app is the default shell (index.html); the
+    standalone QR payment page is its own bundle under /pay."""
+    if path.startswith('api/'):
         abort(404)
     candidate = os.path.join(DIST_DIR, path)
     if path and os.path.isfile(candidate):
         return send_from_directory(DIST_DIR, path)
-    # On a staff-only box there is no public portal at all; hand back the staff
-    # shell so the LAN tablets still work from the bare host name.
-    if not SERVE_CUSTOMER:
-        return send_from_directory(DIST_DIR, 'staff.html')
+    if path == 'pay' or path.startswith('pay/'):
+        return send_from_directory(DIST_DIR, 'pay.html')
     return send_from_directory(DIST_DIR, 'index.html')
 
 

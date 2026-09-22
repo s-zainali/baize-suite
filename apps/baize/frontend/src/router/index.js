@@ -11,7 +11,7 @@ import ManageLicensePage from '@/pages/ManageLicensePage.vue'
 import { auth, isLoggedIn } from '../Auth.js'
 
 const router = createRouter({
-  history: createWebHistory('/staff'),
+  history: createWebHistory('/'),
   routes: [
     {
       path: '/login',

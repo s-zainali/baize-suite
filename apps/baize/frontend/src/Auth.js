@@ -79,7 +79,7 @@ export function logout() {
     localStorage.removeItem('ls_role')
     localStorage.removeItem('ls_user')
     localStorage.removeItem('ls_caps')
-    window.location.href = '/staff/login'
+    window.location.href = '/login'
 }
 
 // Drop-in replacement for authFetch() on API calls: attaches the token,

@@ -17,13 +17,13 @@ import { SourceMap } from 'node:module'
  * /staff route and bounced it to the customer home. Production was fine because
  * Flask routes /staff separately; this makes dev behave the same way.
  */
-const staffDevFallback = () => ({
-  name: 'staff-html-fallback',
+const payDevFallback = () => ({
+  name: 'pay-html-fallback',
   configureServer(server) {
     server.middlewares.use((req, _res, next) => {
       const [path] = (req.url || '').split('?')
-      if (path === '/staff' || path.startsWith('/staff/')) {
-        req.url = '/staff.html'
+      if (path === '/pay' || path.startsWith('/pay/')) {
+        req.url = '/pay.html'          // dev: the pay page is its own entry
       }
       next()
     })
@@ -31,7 +31,7 @@ const staffDevFallback = () => ({
 })
 
 export default defineConfig({
-  plugins: [vue(), vueDevTools(), tailwindcss(), staffDevFallback(),
+  plugins: [vue(), vueDevTools(), tailwindcss(), payDevFallback(),
     VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
@@ -73,13 +73,11 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       // Two entries, two bundles.
-      //   index.html -> the CUSTOMER portal, served at /
-      //   staff.html -> the staff app, served at /staff
-      // They share only generic helpers, so a guest at / never downloads
-      // the till UI, the staff route table, or the staff endpoint list.
+      //   index.html -> the staff app (served at /)
+      //   pay.html   -> the standalone QR payment page (served at /pay)
       input: {
-        index: resolve(__dirname, 'index.html'),
-        staff: resolve(__dirname, 'staff.html'),
+        index: resolve(__dirname, 'index.html'),   // the staff app, served at /
+        pay: resolve(__dirname, 'pay.html'),        // the venue QR payment page, served at /pay
       },
     },
   },

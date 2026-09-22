@@ -22,7 +22,6 @@
     ENV PYTHONUNBUFFERED=1 \
         PYTHONDONTWRITEBYTECODE=1 \
         FLASK_APP=api/index.py \
-        APP_ROLE=all \
         MIGRATE_ON_START=0 \
         PORT=5000
     
