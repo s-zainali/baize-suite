@@ -2,7 +2,7 @@
     <div
         class="relative min-h-screen overflow-hidden bg-slate-900 text-white selection:bg-emerald-500/30 selection:text-emerald-300">
 
-        <div class="relative mx-auto flex min-h-screen max-w-7xl flex-col p-4 sm:p-6 lg:p-8">
+        <div class="relative mx-auto flex min-h-screen flex-col p-4 sm:p-6 lg:p-8">
 
             <!-- Header -->
             <header class="grid grid-cols-2 items-center justify-between gap-4 pb-6 sm:grid-cols-[12rem_1fr_12rem]">
@@ -41,7 +41,7 @@
             </header>
 
             <!-- View Switcher Tabs (Mobile & Quick Toggle) -->
-            <nav class="mb-4 grid grid-cols-2 sm:flex gap-2 border-b border-slate-800/80 pb-3">
+            <nav class="mb-4 grid grid-cols-1 sm:flex gap-2 border-b border-slate-800/80 pb-3">
                 <button @click="activeTab = 'dashboard'"
                     :class="activeTab === 'dashboard' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-800 text-slate-400 border-slate-700/60 hover:text-slate-200'"
                     class="flex items-center gap-2 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer">
