@@ -116,7 +116,7 @@ class PlaySession(SyncMixin, db.Model):
     receipt_id = db.Column(db.Integer, nullable=False)   # stable across resumes
     # Set when the tab was started from a customer's booking. This is the ONLY
     # link between a played session and an account — walk-ins stay anonymous.
-    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=True, index=True)
+    customer_id = db.Column(db.Integer, nullable=True, index=True)  # CENTRAL customer id (no local FK)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now())
 
 
@@ -132,7 +132,7 @@ class SessionPlayer(SyncMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     session_id = db.Column(db.Integer, db.ForeignKey('play_session.id'), nullable=False, index=True)
     name = db.Column(db.String(100), nullable=False, default='')
-    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=True, index=True)
+    customer_id = db.Column(db.Integer, nullable=True, index=True)  # CENTRAL customer id (no local FK)
     added_at = db.Column(db.DateTime, default=lambda: datetime.now())
 
 
@@ -254,7 +254,7 @@ class Booking(SyncMixin, db.Model):
     phone = db.Column(db.String(30), nullable=False)
     # Set when a guest booked it themselves through the portal; NULL for
     # bookings taken at the counter by staff.
-    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=True, index=True)
+    customer_id = db.Column(db.Integer, nullable=True, index=True)  # CENTRAL customer id (no local FK)
     start_time = db.Column(db.DateTime, nullable=False)     # when they want it
     end_time = db.Column(db.DateTime, nullable=False)     # when they want it
     # booked   -> reserved, not yet started

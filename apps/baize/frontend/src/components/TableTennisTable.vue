@@ -334,12 +334,12 @@ const isPrivateTT = computed(() => props.table.type && props.table.type.toLowerC
 const tableThemeClasses = computed(() => {
     if (isPrivateTT.value) {
         return props.table.isActive
-            ? 'border-amber-500/90 bg-sky-700 shadow-2xl shadow-amber-500/40'
+            ? 'border-amber-500/90 bg-sky-700 shadow-2xl'
             : 'border-amber-950 bg-sky-900'
     }
 
     return props.table.isActive
-        ? 'border-slate-800 bg-sky-600 shadow-2xl shadow-blue-500/30'
+        ? 'border-slate-800 bg-sky-600 shadow-2xl '
         : 'border-slate-900 bg-sky-900'
 })
 

@@ -2472,18 +2472,23 @@ def manage_booking(booking_id):
             session = PlaySession.query.get(table.session_id)
             if session and b.customer_id:
                 session.customer_id = b.customer_id
-                _sp = SessionPlayer.query.filter_by(session_id=session.id).first()
-                if _sp and not _sp.customer_id:
-                    _sp.customer_id = b.customer_id
                 # Customers live in central — resolve the registered player's
-                # current name from there and label the session with it.
+                # current name and make sure they appear as a MEMBER (a
+                # SessionPlayer carrying the central customer id → amber card).
                 import central_client
                 _cust = central_client.get_customer(b.customer_id)
-                if _cust and _cust.get('name'):
-                    if not (session.guest_name or '').strip():
-                        session.guest_name = _cust['name']
-                    if _sp is not None and hasattr(_sp, 'name') and not (getattr(_sp, 'name', '') or '').strip():
-                        _sp.name = _cust['name']
+                _name = (_cust.get('name') if _cust else None) or (b.guest_name or '').strip() or 'Member'
+                _sp = SessionPlayer.query.filter_by(session_id=session.id).first()
+                if _sp is None:
+                    _sp = SessionPlayer(session_id=session.id, name=_name, customer_id=b.customer_id)
+                    db.session.add(_sp)
+                else:
+                    if not _sp.customer_id:
+                        _sp.customer_id = b.customer_id
+                    if not (_sp.name or '').strip():
+                        _sp.name = _name
+                if not (session.guest_name or '').strip():
+                    session.guest_name = _name
         else:
             # The client may mark the booking started before (or without) the
             # table actually being started. Leaving status='active' with no
