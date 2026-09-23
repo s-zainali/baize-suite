@@ -32,7 +32,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from models import (db, Customer, PasswordResetCode, Booking, PoolTable, Lounge,
                     PlaySession, SessionPlayer, ActivityLog, CanteenOrder, GlobalRate,
-                    Branch, generate_booking_code)
+                    Branch)
 
 customer_bp = Blueprint('customer', __name__, url_prefix='/api/customer')
 
