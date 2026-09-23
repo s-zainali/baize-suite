@@ -180,7 +180,19 @@ class LocalCentral(Central):
         end: dt.datetime, 
         customer
     ) -> dict:
-        # 1. Local conflict check
+        # 0. Idempotency — a retried / double-submitted booking for the same slot
+        # by the same customer returns the existing one instead of duplicating.
+        dup = db.query(Booking).filter(
+            Booking.customer_id == customer.id,
+            Booking.table_uid == table_uid,
+            Booking.start_time == start,
+            Booking.status.in_(["booked", "active"]),
+            Booking.deleted_at.is_(None),
+        ).first()
+        if dup:
+            return {"success": True, "code": dup.code, "syncId": dup.sync_id, "duplicate": True}
+
+        # 1. Local conflict check (someone else on the same slot)
         clash = db.query(Booking).filter(
             Booking.table_uid == table_uid,
             Booking.status.in_(["booked", "active"]),
@@ -257,14 +269,13 @@ class LocalCentral(Central):
                         detail=f"Local booking cancelled because remote node rejected request: {err_msg}"
                     )
 
-        except httpx.RequestError as e:
-            # Node was unreachable; delete local booking to prevent orphaned state
-            db.delete(b)
+        except httpx.RequestError:
+            # Node unreachable OR its response was lost. DO NOT delete: the node
+            # may have created the booking (its create is idempotent by syncId),
+            # and deleting here would make a retry mint a NEW syncId → a duplicate
+            # at the club. Keep the booking; it reconciles on the next sync/retry.
             db.commit()
-            raise HTTPException(
-                status_code=502, 
-                detail=f"Local booking cancelled because remote node was unreachable: {str(e)}"
-            )
+            return {"success": True, "code": booking_code, "syncId": sync_id, "pendingSync": True}
 
         return {
             "ok": True,
@@ -279,20 +290,26 @@ class LocalCentral(Central):
     def my_bookings(self, db: Session, customer) -> list:
         rows = db.query(Booking).filter(
             Booking.customer_id == customer.id,
-            Booking.status == 'booked',   # only UPCOMING; started/finished drop off
+            Booking.status.in_(['booked', 'active']),   # upcoming + in-progress
             Booking.deleted_at.is_(None)
         ).order_by(Booking.start_time).all()
 
-        return [{
-            "id": b.id,
-            "code": b.code,
-            "tableUid": b.table_uid,
-            "tableType": b.table_type,
-            "tableNumber": b.table_number,
-            "startTime": b.start_time.isoformat(),
-            "endTime": b.end_time.isoformat(),
-            "status": b.status
-        } for b in rows]
+        seen, out = set(), []
+        for b in rows:
+            if b.sync_id in seen:        # never show one booking twice
+                continue
+            seen.add(b.sync_id)
+            out.append({
+                "id": b.id,
+                "code": b.code,
+                "tableUid": b.table_uid,
+                "tableType": b.table_type,
+                "tableNumber": b.table_number,
+                "startTime": b.start_time.isoformat(),
+                "endTime": b.end_time.isoformat(),
+                "status": b.status,        # 'booked' = upcoming, 'active' = playing now
+            })
+        return out
 
     def cancel_booking(self, db: Session, customer, booking_id: int) -> dict:
         b = db.query(Booking).filter(
@@ -369,7 +386,7 @@ class LocalCentral(Central):
             b.status = status
             db.commit()
         except Exception as e:
-            b.rollback()
+            db.rollback()
             raise HTTPException(status_code=500, detail=f"Failed to complete local booking: {str(e)}")
 
         return {"ok": True}

@@ -40,6 +40,29 @@ DEFAULT_RATES = {
 app = Flask(__name__, 
             static_folder=os.path.join(DIST_DIR, 'assets'), 
             template_folder=DIST_DIR)
+import secrets as _secrets_mod
+from collections import defaultdict as _defaultdict
+import time as _time
+
+# A local install for a real club is production too, so treat anything that
+# isn't explicitly development as production (fail-closed).
+IS_PROD = (os.environ.get('BAIZE_ENV', '').lower() == 'production'
+           or os.environ.get('DEPLOY_MODE', 'local') in ('hybrid', 'cloud')
+           or os.environ.get('BAIZE_ENV', '').lower() != 'development')
+
+def _require_secret(env_name, weak_default):
+    """Return the secret from env. In production, refuse to boot if it's missing
+    or still the shipped default. In development, fall back but warn loudly."""
+    val = os.environ.get(env_name)
+    if val and val != weak_default:
+        return val
+    if IS_PROD:
+        raise RuntimeError(
+            f"[SECURITY] {env_name} must be set to a strong value in production "
+            f"(e.g. `openssl rand -hex 32`). Refusing to start.")
+    print(f"\u26a0\ufe0f  [DEV] {env_name} unset/weak — using an insecure default. Never do this in production.")
+    return val or weak_default
+
 _cors_origins = [o.strip() for o in os.environ.get('CORS_ORIGINS', '').split(',') if o.strip()]
 CORS(app, resources={r"/*": {"origins": _cors_origins if _cors_origins else ('*' if not IS_PROD else [])}})
 
@@ -85,29 +108,6 @@ if not db_url:
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace('postgres://', 'postgresql://', 1)
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-import secrets as _secrets_mod
-from collections import defaultdict as _defaultdict
-import time as _time
-
-# A local install for a real club is production too, so treat anything that
-# isn't explicitly development as production (fail-closed).
-IS_PROD = (os.environ.get('BAIZE_ENV', '').lower() == 'production'
-           or os.environ.get('DEPLOY_MODE', 'local') in ('hybrid', 'cloud')
-           or os.environ.get('BAIZE_ENV', '').lower() != 'development')
-
-def _require_secret(env_name, weak_default):
-    """Return the secret from env. In production, refuse to boot if it's missing
-    or still the shipped default. In development, fall back but warn loudly."""
-    val = os.environ.get(env_name)
-    if val and val != weak_default:
-        return val
-    if IS_PROD:
-        raise RuntimeError(
-            f"[SECURITY] {env_name} must be set to a strong value in production "
-            f"(e.g. `openssl rand -hex 32`). Refusing to start.")
-    print(f"\u26a0\ufe0f  [DEV] {env_name} unset/weak — using an insecure default. Never do this in production.")
-    return val or weak_default
-
 app.config['SECRET_KEY'] = _require_secret('SECRET_KEY', 'supersecret')
 app.config['SECURITY_PASSWORD_SALT'] = _require_secret('SECURITY_PASSWORD_SALT', 'salt')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -1311,7 +1311,7 @@ def get_state():
     # raced double-submit). Dedup by sync_id, falling back to table+start.
     _seen, _unique = set(), []
     for _bk in active_bookings:
-        _key = _bk.sync_id or f'{_bk.table_uid}|{_bk.start_time}'
+        _key = f'{_bk.table_uid}|{_bk.start_time}'   # slot identity — hides same-slot dupes
         if _key in _seen:
             continue
         _seen.add(_key)
@@ -1516,7 +1516,11 @@ def _push_game_log(log):
         return
     try:
         import central_client, json as _json
+        from models import BranchLicense
         branch = Branch.query.get(log.branch_id) if log.branch_id else None
+        # club_uid lives on the branch's licence, not on Branch itself
+        _bl = BranchLicense.query.filter_by(branch_uid=branch.uid).first() if branch else None
+        _club_uid = _bl.club_uid if _bl else ''
         branch_license = BranchLicense.query.filter_by(branch_uid = branch.uid).first()
         club_uid = branch_license.club_uid
         receipt = {
