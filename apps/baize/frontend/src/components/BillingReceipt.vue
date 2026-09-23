@@ -146,7 +146,7 @@
                 </div>
                 <p class="text-center text-[9px] text-slate-500 font-sans mt-2 leading-snug">
                     Open the camera and scan. Pay by EasyPaisa or JazzCash —
-                    <span v-if="payUrl" class="font-bold text-slate-700">the counter is notified automatically.</span>
+                    <span v-if="paymentsEnabled" class="font-bold text-slate-700">the counter is notified automatically.</span>
                     <span v-else class="font-bold text-slate-700">then the counter confirms and marks it paid.</span>
                 </p>
                 <p class="text-center text-[9px] text-slate-400 font-sans mt-1">
@@ -191,7 +191,7 @@
                         Paid Cash
                     </button>
                 </div>
-                <div v-if="!isPaid && showSettle && !entitlements.includes('payments')" class="flex w-full gap-2">
+                <div v-if="!isPaid && showSettle && !paymentsEnabled" class="flex w-full gap-2">
                     <button v-if="!onKhata" @click="settle('paid', 'easypaisa')" :disabled="settling"
                         class="flex-1 py-1.5 rounded text-[9px] font-bold border cursor-pointer uppercase tracking-wider disabled:opacity-50 transition-colors bg-white text-slate-700 border-slate-300 hover:bg-slate-100">
                         Paid EasyPaisa
@@ -316,7 +316,8 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { qrMatrix, qrSvgPath, easypaisaPayload } from '@/utils/qr.js'
-import { branding , entitlements, loadBranding, loadLicense} from '@/composables/useLicense'
+import { branding, hasFeature, loadBranding, loadLicense } from '@/composables/useLicense'
+import { branchHasFeature } from '@/composables/useBranch.js'
 import { API_URL } from '@/Auth'
 
 
@@ -492,11 +493,14 @@ const settleable = computed(() => props.receipt.settleable !== false)
  * It used to be fetched here after mount, which meant the code rendered
  * before the link existed and fell back to the offline merchant payload.
  */
-const payUrl = computed(() => props.receipt.payUrl || '')
 
 // Hidden on historical views: a bill pulled from the logs is a record, not a
 // till action.
 const showSettle = computed(() => !props.readOnly && settleable.value)
+// Automated payments are on when the bill's branch has the 'payments' add-on.
+// branchHasFeature reads the server-computed per-branch features (reliable);
+// hasFeature is OR'd in as a fallback.
+const paymentsEnabled = computed(() => branchHasFeature('payments') || hasFeature('payments'))
 
 const isPaid = computed(() => status.value === 'paid')
 const onKhata = computed(() => status.value === 'pending' && !!khataName.value)
@@ -611,8 +615,7 @@ const qrQuietZone = 4
  * — that logic is deliberately left exactly as it was.
  */
 const qrPayload = computed(() =>
-    payUrl.value        // hosted pay page → webhook auto-reconciles (2.5% tier)
-    || easypaisaPayload({   // offline merchant QR → cashier confirms manually (free tier)
+    easypaisaPayload({   // aggregator / offline merchant QR, rendered from qr.js
         amount: props.receipt.totalCost,
         billRef: props.receipt.receiptId,
         accountNumber: '03360724333',

@@ -34,6 +34,10 @@
                 class="cursor-pointer rounded-xl border border-amber-600/40 bg-amber-500/10 px-4 py-2 text-xs font-bold text-amber-400 transition-all hover:bg-amber-500/20">
                 Low Stock ⚠ {{ lowStock.length }}
             </button>
+            <button v-if="isDashboard && canFloor" @click="emit('activate-modal', 'khata')"
+                class="cursor-pointer rounded-xl border border-amber-600/40 bg-amber-500/10 px-4 py-2 text-xs font-bold text-amber-400 transition-all hover:bg-amber-500/20">
+                Khata Book
+            </button>
             <div v-if="isCanteen || isDashboard" class="flex justify-end items-center gap-2">
                 <!-- Label Text -->
                 <span class="text-xs uppercase font-bold text-slate-400">
@@ -82,6 +86,8 @@ const props = defineProps({
     lowStock: { type: Array, default: () => [] },
     refreshing: { type: Boolean, default: false },
 })
+
+import { canFloor } from '@/Auth.js'
 
 const emit = defineEmits(['activate-modal', 'toggle-bills'])
 

@@ -71,6 +71,9 @@
     <RatesModal v-if="activeModal === 'rates'" :rates="rates" @save-configuration="saveGlobalRates($event)"
         @close-modal="activeModal = 'none'" />
 
+    <KhataModal v-if="activeModal === 'khata'" @close-modal="activeModal = 'none'"
+        @settled="refreshBillStatus()" />
+
     <TransferTableModal v-if="activeModal === 'transferTable'" :from_uid="fromTableUid" :tableLounge="tableLounge"
         :rates="rates" :bookings="bookings" @transfer-table="transferTable($event)"
         @close-modal="activeModal = 'none'" />
@@ -104,6 +107,7 @@ import PaymentPings from '../components/PaymentPings.vue'
 import BillingReceipt from '../components/BillingReceipt.vue'
 import ConfirmDeleteModal from '../components/Modals/ConfirmDeleteModal.vue'
 import AddTableModal from '../components/Modals/AddTableModal.vue'
+import KhataModal from '../components/Modals/KhataModal.vue'
 import ServerOfflineModal from '../components/Modals/ServerOfflineModal.vue'
 import TransferTableModal from '../components/Modals/TransferTableModal.vue'
 import StartFromQueueModal from '../components/Modals/StartFromQueueModal.vue'
@@ -116,7 +120,7 @@ import SummaryStrip from '../components/SummaryStrip.vue'
 import BookingsComponent from '../components/BookingsComponent.vue'
 import { authFetch, API_URL } from '@/Auth.js'
 import { loadSettings, settingValue, setSetting } from '@/composables/useSettings.js'
-import { canManage, isOwner, auth, logout } from '@/Auth.js'
+import { canManage, canFloor, isOwner, auth, logout } from '@/Auth.js'
 import { onModalRequest } from '@/composables/useModals.js'
 
 

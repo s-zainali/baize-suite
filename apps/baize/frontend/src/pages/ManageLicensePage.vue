@@ -174,7 +174,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { status, loadBranding, clubLogout, clubLoggedIn, deactivateLicense } from '@/composables/useLicense';
+import { status, loadBranding, clubLogout, clubLoggedIn, deactivateLicense, loadLicense } from '@/composables/useLicense';
 import { usePageBackground } from '@/composables/usePageBackground';
 import { API_URL, authFetch } from '@/Auth';
 import { branches, loadBranches } from '@/composables/useBranch.js';
@@ -204,6 +204,7 @@ async function activateBranch() {
         branchMsg.value = `Activated: ${data.branch?.name || 'branch'}${(data.branch?.features || []).length ? ' (' + data.branch.features.join(', ') + ')' : ''}`
         branchToken.value = ''; branchName.value = ''
         await loadBranches()
+        await loadLicense()   // pick up the new branch's entitlements in place — no logout needed
     } catch (e) {
         branchOk.value = false; branchMsg.value = e.message
     } finally { branchBusy.value = false }

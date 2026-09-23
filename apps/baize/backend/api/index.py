@@ -23,12 +23,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# A local install for a real club is production too, so treat anything that
-# isn't explicitly development as production (fail-closed).
-IS_PROD = (os.environ.get('BAIZE_ENV', '').lower() == 'production'
-           or os.environ.get('DEPLOY_MODE', 'local') in ('hybrid', 'cloud')
-           or os.environ.get('BAIZE_ENV', '').lower() != 'development')
-
 
 # --- SETUP PATHS ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))       
@@ -94,6 +88,12 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 import secrets as _secrets_mod
 from collections import defaultdict as _defaultdict
 import time as _time
+
+# A local install for a real club is production too, so treat anything that
+# isn't explicitly development as production (fail-closed).
+IS_PROD = (os.environ.get('BAIZE_ENV', '').lower() == 'production'
+           or os.environ.get('DEPLOY_MODE', 'local') in ('hybrid', 'cloud')
+           or os.environ.get('BAIZE_ENV', '').lower() != 'development')
 
 def _require_secret(env_name, weak_default):
     """Return the secret from env. In production, refuse to boot if it's missing
@@ -1544,7 +1544,7 @@ def khata_book():
     khata. A guest who owes for a frame and a packet of crisps should appear
     once with one number, not twice.
     """
-    require_role('manager')
+    require_capability('floor')   # paying dues is front-desk work, not manager-only
 
     people = {}
 
@@ -1739,46 +1739,14 @@ def settle_group(group, *, method='cash'):
 
 def ensure_pay_link(*, amount, kind, reference='', payer_name='',
                     log_id=None, order_id=None, customer_id=None):
-    """Get (or mint) the payment URL for a bill.
+    """Aggregator payment hook — STUB.
 
-    Called wherever a bill is produced, so a receipt arrives with its QR already
-    resolved. Doing this lazily in the browser meant the code rendered before
-    the link existed and silently fell back to the offline merchant payload —
-    which is why scanning gave an EasyPaisa number instead of opening the app.
+    We no longer mint a hosted /pay link. Payment happens via the third-party
+    aggregator's QR or the offline merchant QR, both rendered client-side from
+    qr.js. When the aggregator is wired, return its checkout / QR reference here
+    so receipts can carry it; until then there is no server-side pay URL.
     """
-    if not amount or amount <= 0:
-        return None
-    # Automated EasyPaisa/JazzCash (the payment aggregator) is a licensed add-on.
-    # Without the 'payments' entitlement no QR is minted, so the receipt falls
-    # back to manual "Paid EasyPaisa/JazzCash" marking instead.
-    from license_util import licensed_features
-    if 'payments' not in _selected_features():
-        return None
-
-    existing = None
-    if log_id:
-        existing = PaymentIntent.query.filter_by(log_id=log_id, status='pending').first()
-    elif order_id:
-        existing = PaymentIntent.query.filter_by(canteen_order_id=order_id, status='pending').first()
-    elif customer_id and kind == 'account':
-        existing = PaymentIntent.query.filter_by(
-            customer_id=customer_id, kind='account', status='pending').first()
-
-    if existing:
-        if existing.amount != amount:
-            existing.amount = amount
-            db.session.commit()
-        return f'{public_base_url()}/pay/{existing.token}'
-
-    intent = PaymentIntent(
-        token=secrets.token_urlsafe(12), kind=kind,
-        reference=str(reference or '')[:40], amount=amount,
-        payer_name=str(payer_name or '')[:100],
-        log_id=log_id, canteen_order_id=order_id, customer_id=customer_id,
-    )
-    db.session.add(intent)
-    db.session.commit()
-    return f'{public_base_url()}/pay/{intent.token}'
+    return None
 
 
 if SERVE_STAFF:
@@ -1865,27 +1833,14 @@ def create_payment_intent():
     return jsonify({'intent': intent_json(intent)}), 201
 
 
-@app.route('/api/pay/<token>', methods=['GET'])
-def public_payment(token):
-    """What a scanned QR shows. Deliberately unauthenticated — whoever holds
-    the code is at the counter with the bill in front of them.
-
-    Only the amount and a reference are exposed: no phone number, no itemised
-    history, nothing that would matter if the link were forwarded.
-    """
-    intent = PaymentIntent.query.filter_by(token=token).first()
-    if not intent:
-        return jsonify({'error': 'That payment link is not valid'}), 404
-    return jsonify({'payment': intent_json(intent, include_url=False)})
-
-
 @app.route('/api/pay/<token>/confirm', methods=['POST'])
 def confirm_payment(token):
-    """DEMO stand-in for a gateway callback.
+    """Aggregator payment callback — STUB.
 
-    A real integration would verify a signed webhook here instead of trusting
-    the caller; everything downstream — settling the bill, pinging the till —
-    stays exactly the same.
+    Dormant until the payment aggregator is wired: its signed webhook will POST
+    here to confirm a payment, and the settlement path below (identical to the
+    till's) will close the bill. TODO: verify the aggregator's signature before
+    trusting this call.
     """
     intent = PaymentIntent.query.filter_by(token=token).first()
     if not intent:
@@ -2829,8 +2784,6 @@ def spa(path):
     candidate = os.path.join(DIST_DIR, path)
     if path and os.path.isfile(candidate):
         return send_from_directory(DIST_DIR, path)
-    if path == 'pay' or path.startswith('pay/'):
-        return send_from_directory(DIST_DIR, 'pay.html')
     return send_from_directory(DIST_DIR, 'index.html')
 
 

@@ -12,27 +12,13 @@ import { SourceMap } from 'node:module'
 /**
  * Multi-page apps need a dev-server fallback per entry.
  *
- * Vite's dev server rewrites unknown paths to index.html — the CUSTOMER entry.
+ * Vite's dev server rewrites unknown paths to index.html — the staff app.
  * So in dev, /staff/login loaded the customer bundle, whose router has no
  * /staff route and bounced it to the customer home. Production was fine because
  * Flask routes /staff separately; this makes dev behave the same way.
  */
-const payDevFallback = () => ({
-  name: 'pay-html-fallback',
-  configureServer(server) {
-    server.middlewares.use((req, _res, next) => {
-      const [path] = (req.url || '').split('?')
-      if (path === '/pay' || path.startsWith('/pay/')) {
-        req.url = '/pay.html'          // dev: the pay page is its own entry
-      }
-      next()
-    })
-  },
-})
-
 export default defineConfig({
-  plugins: [vue(), vueDevTools(), tailwindcss(), payDevFallback(),
-    VitePWA({
+  plugins: [vue(), vueDevTools(), tailwindcss(),     VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
         manifest: {
@@ -73,11 +59,9 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       // Two entries, two bundles.
-      //   index.html -> the staff app (served at /)
-      //   pay.html   -> the standalone QR payment page (served at /pay)
+      //   index.html -> the staff app (the only bundle, served at /)
       input: {
-        index: resolve(__dirname, 'index.html'),   // the staff app, served at /
-        pay: resolve(__dirname, 'pay.html'),        // the venue QR payment page, served at /pay
+        index: resolve(__dirname, 'index.html'),   // the staff app — the only bundle
       },
     },
   },

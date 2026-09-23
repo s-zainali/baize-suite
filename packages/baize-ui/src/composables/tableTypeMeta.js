@@ -14,6 +14,23 @@ const types = reactive([])
 let loaded = false
 let _fetchTypes = null   // () => Promise<Array>, provided by the host app
 
+// Fallback palette copied verbatim from the app's DEFAULT_TABLE_TYPES, so
+// colours are correct even before (or without) a backend fetch.
+const TYPE_COLORS = {
+    snooker: '#34d399',
+    pool: '#38bdf8',
+    privateSnooker: '#fbbf24',
+    privatePool: '#c084fc',
+    ps5: '#3b82f6',
+    ps4: '#60a5fa',
+    xboxx: '#22c55e',
+    xbox1: '#22c55e',
+    pc: '#AB47BC',
+    foosball: '#a3e635',
+    tabletennis: '#0b2e59',
+    privateTableTennis: '#0b2e59',
+}
+
 export function configureTableTypes({ fetchTypes }) {
     _fetchTypes = fetchTypes
 }
@@ -32,7 +49,7 @@ export async function loadTableTypes(force = false) {
 
 export const metaByKey = computed(() => Object.fromEntries(types.map((t) => [t.key, t])))
 export const typeLabel = (k) => metaByKey.value[k]?.label || k
-export const typeColor = (k) => metaByKey.value[k]?.color || '#818cf8'
+export const typeColor = (k) => metaByKey.value[k]?.color || TYPE_COLORS[k] || '#818cf8'
 export const typeBadge = (k) => metaByKey.value[k]?.badge || '?'
 export const rendererFor = (k) => metaByKey.value[k]?.renderer || 'pool'
 

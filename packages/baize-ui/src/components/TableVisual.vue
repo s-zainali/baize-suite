@@ -809,8 +809,8 @@
                 class="absolute -inset-y-4 inset-x-0 rounded-2xl bg-slate-950/40 border-2 border-dashed pointer-events-none z-0 transition-colors duration-500"
                 :class="[
                     props.table.isActive
-                        ? 'border-sky-500/80 shadow-blue-950/30'
-                        : 'border-sky-700/40'
+                        ? 'border-amber-500/80 shadow-amber-950/30'
+                        : 'border-amber-800/40'
                 ]">
             </div>
 
@@ -834,7 +834,8 @@
                         class="absolute inset-0 rounded-lg pointer-events-none z-0 bg-gradient-to-br from-white/10 via-transparent to-black/10">
                     </div>
                     <!-- white boundary (side + end lines) -->
-                    <div class="absolute inset-0 border-2 border-white/85 rounded-lg pointer-events-none z-0"></div>
+                    <div class="absolute inset-0 border-2 rounded-lg pointer-events-none z-0"
+                    :class="isPrivateTT ? 'border-amber-600': 'border-white/85'"></div>
                     <!-- centre line, lengthwise (doubles line) -->
                     <div
                         class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[1.5px] bg-white/60 pointer-events-none z-0">
@@ -932,7 +933,7 @@
                             </span>
                         </div>
 
-                        <span class="font-black drop-shadow-[0_2px_3px_rgba(0,0,0,0.6)] tracking-tight leading-none"
+                        <span class="font-black  tracking-tight leading-none backdrop-blur-[2px]"
                             :class="[isDisplay ? 'text-6xl' : 'text-4xl', hideId ? 'text-transparent' : 'text-white']">
                             {{ table.id }}
                         </span>
@@ -1115,7 +1116,7 @@ const tableThemeClasses = computed(() => {
 const ttTableThemeClasses = computed(() => {
     if (isPrivateTT.value) {
         return props.table.isActive
-            ? 'border-amber-500/90 bg-sky-700 shadow-2xl shadow-blue-500/40'
+            ? 'border-amber-500/90 bg-sky-700 shadow-2xl shadow-amber-500/40'
             : 'border-amber-950 bg-sky-900'
     }
 

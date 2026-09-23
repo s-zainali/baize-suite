@@ -14,7 +14,7 @@
                             {{ tab.emoji }} {{ tab.label }}
                         </button>
                     </div>
-                    <button v-if="canManage" @click="showKhata = true"
+                    <button v-if="canFloor" @click="showKhata = true"
                         class="cursor-pointer rounded-xl border border-amber-600/40 bg-amber-500/10 px-4 py-2 text-xs font-bold text-amber-400 transition-all hover:bg-amber-500/20">
                         Khata Book
                     </button>
@@ -255,7 +255,7 @@
 <script setup>
 import BillingReceipt from '@/components/BillingReceipt.vue'
 import KhataModal from '@/components/Modals/KhataModal.vue'
-import { auth } from '@/Auth.js'
+import { auth, canFloor } from '@/Auth.js'
 import LogFilterModal from '@/components/Modals/LogFilterModal.vue'
 import { ref, computed, watch, onMounted } from 'vue'
 import {

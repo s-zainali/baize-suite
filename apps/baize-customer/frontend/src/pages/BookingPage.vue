@@ -1,17 +1,6 @@
 <template>
     <div class="bg-slate-900 text-slate-100 p-6">
         <!-- Header -->
-        <div
-            class="sm:hidden mb-4 -mx-4 sticky top-0 z-100 flex flex-1 flex-col items-center justify-center gap-2 bg-gradient-to-r from-transparent via-slate-800/80 to-transparent  backdrop-blur-md sm:order-2 sm:col-span-1">
-            <div class="h-[1px] w-full rounded-full bg-gradient-to-r from-transparent via-slate-700 to-transparent">
-            </div>
-            <div class="flex items-center gap-4">
-                <img src="/baize_logo.png" class="h-8" alt="">
-                <img src="/baize_logo_text.png" class="h-8 py-1 object-contain" alt="Baize Logo" />
-            </div>
-            <div class="h-[1px] w-full rounded-full bg-gradient-to-r from-transparent via-slate-700 to-transparent">
-            </div>
-        </div>
         <div class="flex justify-between items-center mb-6">
             <div class="flex gap-4 items-center">
                 <RouterLink :to="'/home'"
@@ -34,7 +23,14 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-4">
+        <!-- Initial load: club + branch data on the way from the venue -->
+        <div v-if="!firstLoadDone"
+            class="flex flex-col items-center justify-center py-32 rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950/40">
+            <span class="h-10 w-10 mb-4 rounded-full border-2 border-slate-600 border-t-emerald-400 animate-spin"></span>
+            <p class="text-sm font-bold text-slate-300">Loading club…</p>
+        </div>
+
+        <div v-else class="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-4">
             <!-- LEFT: booking form -->
             <div
                 class="bg-slate-950/40 border border-slate-700 rounded-2xl p-5 h-fit w-full mx-auto lg:mx-0 lg:sticky lg:top-6">
@@ -118,13 +114,19 @@
 
             <!-- RIGHT: station grid grouped by lounge -->
             <div class=" space-y-4">
+                <!-- Loading a branch's stations -->
+                <div v-if="loading"
+                    class="flex flex-col items-center justify-center text-center py-24 rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950/40">
+                    <span class="h-8 w-8 mb-3 rounded-full border-2 border-slate-600 border-t-emerald-400 animate-spin"></span>
+                    <p class="text-sm font-bold text-slate-300">Loading stations…</p>
+                </div>
+                <template v-else>
                 <div v-if="state.branches.length > 1 && !form.branch"
                     class="flex flex-col items-center justify-center text-center py-24 rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950/40">
                     <span class="text-3xl mb-3 opacity-40">🏢</span>
                     <p class="text-sm font-bold text-slate-300">Select a branch to see its stations</p>
                     <p class="text-xs text-slate-500 mt-1">Choose a location on the left to start a booking.</p>
                 </div>
-                <!-- <TableVisual :table="" :is-display="true"/> -->
                 <div v-for="lounge in state.lounges" :key="lounge.uid"
                     class="bg-slate-950/40 border border-slate-700 rounded-2xl p-4">
                     <span class="text-sm font-black text-white block mb-3">{{ lounge.name }}</span>
@@ -160,6 +162,7 @@
                         </button>
                     </div>
                 </div>
+                </template>
             </div>
         </div>
         <PoweredByZain :for-customer="true" />
@@ -198,6 +201,8 @@ const clubName = ref('')
 const myPhone = computed(() => formatPhoneDisplay(customer.profile?.phone || ''))
 
 const state = ref({ tables: [], lounges: [], bookings: [], branches: [] })
+const loading = ref(false)         // user-initiated fetch (initial + branch/date)
+const firstLoadDone = ref(false)   // gate the very first club load
 const selectedTable = ref(null)
 const selectedBranch = computed(() => state.value.branches.find(branch => branch.uid === form.branch))
 const selectedLounge = computed(() => state.value.lounges.find(lounge => lounge.uid === selectedTable.value.loungeUid))
@@ -245,8 +250,9 @@ function reconcileTimes() {
 watch(() => [form.date, form.startTime], reconcileTimes, { immediate: true })
 
 let poll
-async function fetchState() {
-    if (!clubUid.value) return
+async function fetchState(showLoading = false) {
+    if (!clubUid.value) { firstLoadDone.value = true; return }
+    if (showLoading) loading.value = true
 
     try {
         // Pass club_uid so backend can look up Club.public_url
@@ -281,15 +287,19 @@ async function fetchState() {
         }
 
     } catch (_) { /* transient: the poll will retry */ }
+    finally {
+        loading.value = false
+        firstLoadDone.value = true
+    }
 }
 let tick
 // Availability is per-day, so refetch whenever the chosen date moves
-watch(() => form.date, fetchState)
-watch(() => form.branch, () => { selectedTable.value = null; fetchState() })
+watch(() => form.date, () => fetchState(true))
+watch(() => form.branch, () => { selectedTable.value = null; fetchState(true) })
 
 onMounted(() => {
-    fetchState()
-    poll = setInterval(fetchState, 10000)
+    fetchState(true)                                  // initial load — show the loader
+    poll = setInterval(() => fetchState(false), 10000)  // silent background refresh
     tick = setInterval(() => { clock.value = new Date(); reconcileTimes() }, 30000)
 })
 onUnmounted(() => { clearInterval(poll); clearInterval(tick) })
