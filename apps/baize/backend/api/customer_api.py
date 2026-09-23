@@ -561,6 +561,14 @@ def create_booking():
     if not table:
         return jsonify({'error': 'That station no longer exists'}), 404
 
+    # Idempotency: a retried or raced POST for the same booking (the customer
+    # app always sends a stable syncId) must not create a second row.
+    sid = (data.get('syncId') or '').strip()
+    if sid:
+        dup = Booking.query.filter_by(sync_id=sid).first()
+        if dup:
+            return jsonify({'success': True, 'id': dup.id, 'code': dup.code}), 200
+
     # Whole-interval overlap, same rule the staff endpoint enforces. Checked
     # here too because the client's version of this is only a convenience.
     clash = next((b for b in Booking.query.filter(

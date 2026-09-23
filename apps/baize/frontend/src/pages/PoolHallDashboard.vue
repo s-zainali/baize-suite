@@ -7,16 +7,16 @@
                 ? 'pointer-events-none transition-all duration-300'
                 : 'transition-all duration-300',
         ]" class="flex-1">
-            <Header @activate-modal="handleActivateModal($event)" @toggle-bills="toggleBills('canteen')"
-                :show-bills="showBills" :isOwner="isOwner" :isDashboard="true" />
+            <Header @activate-modal="handleActivateModal($event)" @toggle-bills="toggleBills('dashboard')"
+                @toggle-station-size="toggleStationSize()" :show-bills="showBills" :small-stations="smallStations"
+                :isOwner="isOwner" :isDashboard="true" />
 
             <SummaryStrip :table-types="tableTypes" :table-summary="tableSummary" />
 
             <BookingsComponent :bookings="bookings" @refresh="attemptConnection"
                 @start-from-booking="startSessionWaiting($event, bookings, 'bookings')" />
 
-            <QueueComponent :queue="waitingQueue" :tableSummary="tableSummary"
-                @remove-guest="removeFromQueue($event)"
+            <QueueComponent :queue="waitingQueue" :tableSummary="tableSummary" @remove-guest="removeFromQueue($event)"
                 @add-guest="activeModal = 'addToQueue'"
                 @start-from-queue="startSessionWaiting($event, waitingQueue, 'queue')" />
 
@@ -31,7 +31,8 @@
 
                 <TableGrid v-for="lounge in lounges" :key="lounge.id" :lounge="lounge" :rates="rates"
                     :tableLounge="tablesForLounge(lounge.uid)" :canManage="canManage" :bookings="bookings"
-                    @update-status="handleTableUpdate($event)" @open-receipt="showBills ? activeReceipt = $event : ''"
+                    :small-stations="smallStations" @update-status="handleTableUpdate($event)"
+                    @open-receipt="showBills ? activeReceipt = $event : ''"
                     @transfer-table="handleTransferTable($event)" @remove-table="removeTable($event)"
                     @rename-lounge="renameLounge($event)" @remove-lounge="removeLounge($event)" />
 
@@ -71,8 +72,7 @@
     <RatesModal v-if="activeModal === 'rates'" :rates="rates" @save-configuration="saveGlobalRates($event)"
         @close-modal="activeModal = 'none'" />
 
-    <KhataModal v-if="activeModal === 'khata'" @close-modal="activeModal = 'none'"
-        @settled="refreshBillStatus()" />
+    <KhataModal v-if="activeModal === 'khata'" @close-modal="activeModal = 'none'" @settled="refreshBillStatus()" />
 
     <TransferTableModal v-if="activeModal === 'transferTable'" :from_uid="fromTableUid" :tableLounge="tableLounge"
         :rates="rates" :bookings="bookings" @transfer-table="transferTable($event)"
@@ -88,7 +88,8 @@
 
     <PaymentPings @received="onPaymentReceived" />
 
-    <AddToQueueModal v-if="activeModal === 'addToQueue'" :lounges="lounges" :rates="rates" @close-modal="activeModal = 'none'" :table-lounge="tableLounge"  @enqueue="enQueue($event)"/>
+    <AddToQueueModal v-if="activeModal === 'addToQueue'" :lounges="lounges" :rates="rates"
+        @close-modal="activeModal = 'none'" :table-lounge="tableLounge" @enqueue="enQueue($event)" />
 
 
     <div v-if="tableError"
@@ -122,6 +123,7 @@ import { authFetch, API_URL } from '@/Auth.js'
 import { loadSettings, settingValue, setSetting } from '@/composables/useSettings.js'
 import { canManage, canFloor, isOwner, auth, logout } from '@/Auth.js'
 import { onModalRequest } from '@/composables/useModals.js'
+import { componentFor } from '@/composables/useTableTypes.js'
 
 
 // const API_URL = import.meta.env.VITE_API_URL
@@ -143,6 +145,7 @@ const bookings = ref([])
 let fromTable = ref(null)
 let fromTableUid = ref(null)
 const newGuest = ref({ name: '', tableType: '', id: 0, tableId: '' })
+const smallStations = ref(false)
 
 const existingStationNames = computed(() =>
     lounges.value.flatMap((l) => (l.tables || []).map((t) => t.id ?? t.tableId)),
@@ -154,6 +157,10 @@ onModalRequest('addTable', () => { activeModal.value = 'addTable' })
 const toggleBills = (context) => {
     showBills.value = !showBills.value
     setSetting('dashboard_show_bills', showBills.value)
+}
+const toggleStationSize = (context) => {
+    smallStations.value = !smallStations.value
+    setSetting('small_stations', smallStations.value)
 }
 
 

@@ -835,7 +835,7 @@
                     </div>
                     <!-- white boundary (side + end lines) -->
                     <div class="absolute inset-0 border-2 rounded-lg pointer-events-none z-0"
-                    :class="isPrivateTT ? 'border-amber-600': 'border-white/85'"></div>
+                    :class="isPrivateTT ? table.isActive ? 'border-amber-500' : 'border-amber-600': 'border-white/85'"></div>
                     <!-- centre line, lengthwise (doubles line) -->
                     <div
                         class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[1.5px] bg-white/60 pointer-events-none z-0">
@@ -1116,7 +1116,7 @@ const tableThemeClasses = computed(() => {
 const ttTableThemeClasses = computed(() => {
     if (isPrivateTT.value) {
         return props.table.isActive
-            ? 'border-amber-500/90 bg-sky-700 shadow-2xl shadow-amber-500/40'
+            ? 'border-amber-500/90 bg-sky-700 shadow-2xl'
             : 'border-amber-950 bg-sky-900'
     }
 

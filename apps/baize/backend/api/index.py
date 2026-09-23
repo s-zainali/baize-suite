@@ -1300,6 +1300,16 @@ def get_state():
     lounges = Lounge.query.filter(Lounge.deleted_at.is_(None)).filter(_branch_scope(Lounge)).all()
     # The dashboard strip lists only what still needs starting.
     active_bookings = Booking.query.filter_by(status='booked').filter(_branch_scope(Booking)).all()
+    # Never show the same booking twice if a duplicate row slipped in (e.g. a
+    # raced double-submit). Dedup by sync_id, falling back to table+start.
+    _seen, _unique = set(), []
+    for _bk in active_bookings:
+        _key = _bk.sync_id or f'{_bk.table_uid}|{_bk.start_time}'
+        if _key in _seen:
+            continue
+        _seen.add(_key)
+        _unique.append(_bk)
+    active_bookings = _unique
     
     PKT = timezone(timedelta(hours=5))
     PKT_NOW = lambda: datetime.now(PKT).replace(tzinfo=None)

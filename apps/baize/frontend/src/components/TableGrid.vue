@@ -1,5 +1,15 @@
 <template>
-    <div class="border rounded-[3rem] p-6 pb-8 bg-border-slate-800/40 border-slate-700 shadow-md bg-slate-950/30">
+    <div class="border relative  p-6 pb-8 bg-border-slate-800/40 border-slate-700 shadow-md bg-slate-950/30"
+    :class="smallStations? 'rounded-3xl':'rounded-[3rem]'">
+        <div v-if="selectedTable"
+            class="absolute inset-0 rounded-3xl mb-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-md md:pl-[var(--modal-inset,1rem)]">
+            <component :is="componentFor(selectedTable.type)" :table="selectedTable"
+                :current-rate="getCurrentRate(selectedTable.type)" :canManage="canManage" :lounge-name="lounge.name"
+                :bookings="bookings" :locked="selectedTable.entitled === false && !selectedTable.isActive"
+                @update-status="emit('update-status', $event)" @open-receipt="emit('open-receipt', $event)"
+                @remove-table="emit('remove-table', $event)" @transfer-table="emit('transfer-table', $event)" />
+            <button @click="selectedTable = null" class="absolute top-4 right-4 hover:text-rose-400 text-slate-200 cursor-pointer">✕</button>
+        </div>
         <!-- Lounge header -->
         <div class="flex justify-between items-center ml-2 mr-2 pb-6 border-b border-slate-600">
             <div class="flex items-center gap-2 group/name min-w-0">
@@ -51,7 +61,8 @@
              cards animated in from the top-left corner. Naming the group only in
              rearrange mode keeps the drag settle animation and drops that. -->
         <TransitionGroup v-else tag="main" :name="rearrangeMode ? 'tables' : 'nomove'"
-            class="grid gap-y-6 gap-x-2 items-center justify-items-center grid-cols-[repeat(auto-fill,minmax(202px,1fr))]">
+            class="grid gap-y-6 gap-x-2 items-center justify-items-center "
+            :class="smallStations ? 'grid-cols-[repeat(auto-fill,minmax(101px,1fr))]' : 'grid-cols-[repeat(auto-fill,minmax(202px,1fr))]'">
             <div v-for="(table, i) in localTables" :key="table.uid" :data-tidx="i" class="relative rounded-3xl" :class="[
                 dragIndex === i ? 'z-50' : '',
                 hoverIndex === i && dragIndex !== null && dragIndex !== i
@@ -64,11 +75,20 @@
                 ]" :style="dragIndex === i
                     ? { transform: `translate(${dragOffset.x}px, ${dragOffset.y}px) scale(1.05)` }
                     : null">
-                    <component :is="componentFor(table.type)" :table="table" :current-rate="getCurrentRate(table.type)"
-                        :canManage="canManage" :lounge-name="lounge.name" :bookings="bookings"
-                        :locked="table.entitled === false && !table.isActive"
+                    <component v-if="!smallStations" :is="componentFor(table.type)" :table="table"
+                        :current-rate="getCurrentRate(table.type)" :canManage="canManage" :lounge-name="lounge.name"
+                        :bookings="bookings" :locked="table.entitled === false && !table.isActive"
                         @update-status="emit('update-status', $event)" @open-receipt="emit('open-receipt', $event)"
                         @remove-table="emit('remove-table', $event)" @transfer-table="emit('transfer-table', $event)" />
+                    <button v-else @click="selectedTable = table" class="cursor-pointer rounded-xl">
+                        <component :is="componentFor(table.type)" :table="table"
+                            :current-rate="getCurrentRate(table.type)" :canManage="canManage" :lounge-name="lounge.name"
+                            :bookings="bookings" :locked="table.entitled === false && !table.isActive" :isDisplay="true"w
+                            :class="smallStations ? 'mt-6' : ''" @update-status="emit('update-status', $event)"
+                            @open-receipt="emit('open-receipt', $event)" @remove-table="emit('remove-table', $event)"
+                            @transfer-table="emit('transfer-table', $event)" />
+                    </button>
+
                 </div>
 
                 <!-- Rearrange overlay: drag handle + input shield while in rearrange mode -->
@@ -89,14 +109,12 @@
 <script setup>
 import { ref, computed, reactive, watch, nextTick } from 'vue';
 import { authFetch, API_URL } from '@/Auth.js'
-import PoolTable from './PoolTable.vue';
-import Foosball from './Foosball.vue';
-import ConsoleGame from './ConsoleGame.vue';
 
 import { componentFor } from '@/composables/useTableTypes.js'
 
-const props = defineProps({ lounge: Object, tableLounge: Array, rates: Object, canManage: Boolean, bookings: Object })
-const emit = defineEmits(["open-receipt", "update-status", "remove-table", "transfer-table", "rename-lounge", "remove-lounge"])
+
+const props = defineProps({ lounge: Object, tableLounge: Array, rates: Object, canManage: Boolean, bookings: Object, smallStations: { type: Boolean, default: false } })
+const emit = defineEmits(["open-receipt", "update-status", "remove-table", "transfer-table", "select-table", "rename-lounge", "remove-lounge"])
 
 // const API_URL = import.meta.env.VITE_API_URL
 
@@ -108,6 +126,7 @@ const getCurrentRate = (type) => {
     return isWeekend ? rate.weekend : rate.weekday
 }
 
+const selectedTable = ref(null)
 // ---------- LOUNGE NAME EDITING ----------
 const editingName = ref(false)
 const nameDraft = ref('')

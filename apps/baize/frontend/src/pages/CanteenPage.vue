@@ -1,7 +1,7 @@
 <template>
     <div class="bg-slate-900 p-6 pt-0 text-slate-100 relative flex flex-col">
 
-        <Header :isCanteen="true" :low-stock="lowStock" @toggle-bills="toggleBills" :show-bills="showBills" @activate-modal="$event === 'orders' 
+        <Header :isCanteen="true" :low-stock="lowStock" @toggle-bills="toggleBills('canteen')" :show-bills="showBills" @activate-modal="$event === 'orders' 
             ? showHistory = true
             : $event === 'addItem'
                 ? openProductForm()
