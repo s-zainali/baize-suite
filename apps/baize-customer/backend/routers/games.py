@@ -55,7 +55,7 @@ def record(body: GameIn, s: Session = Depends(get_db)):
             existing.receipt_json = json.dumps(body.receipt or {})
             s.commit()
             return {"ok": True, "id": existing.id, "updated": True}
-        club_name = s.query(Club.club_name).filter(Club.club_uid == body.clubUid).scalar()
+        club_name = s.query(Club.club_name).filter(Club.uuid == body.clubUid).scalar()
     g = GameLog(customer_id=body.customerId, club_uid=body.clubUid, club_name=club_name,
                 branch=body.branch, lounge=body.lounge, table_type=body.tableType,
                 table_number=str(body.tableNumber), minutes=body.minutes, cost=body.cost,
