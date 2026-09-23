@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import GameLog, Customer
+from models import GameLog, Customer, Club
 from security import current_customer
 from bridge_verify import require_bridge
 
@@ -55,7 +55,8 @@ def record(body: GameIn, s: Session = Depends(get_db)):
             existing.receipt_json = json.dumps(body.receipt or {})
             s.commit()
             return {"ok": True, "id": existing.id, "updated": True}
-    g = GameLog(customer_id=body.customerId, club_uid=body.clubUid, club_name=body.clubName,
+        club_name = s.query(Club.club_name).filter(Club.club_uid == body.clubUid).scalar()
+    g = GameLog(customer_id=body.customerId, club_uid=body.clubUid, club_name=club_name,
                 branch=body.branch, lounge=body.lounge, table_type=body.tableType,
                 table_number=str(body.tableNumber), minutes=body.minutes, cost=body.cost,
                 payment_status=body.paymentStatus, payment_method=body.paymentMethod,

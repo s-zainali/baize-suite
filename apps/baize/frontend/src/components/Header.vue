@@ -50,7 +50,7 @@
                     </g>
                 </svg>
             </button>
-            <div v-if="showSettings" class="absolute z-100 shadow-xl top-10 bg-slate-800 border border-slate-700 p-4 rounded-2xl flex flex-col gap-1">
+            <div v-if="showSettings" class="absolute z-100 shadow-xl top-10 bg-slate-800 border border-slate-700 p-4 rounded-2xl flex flex-col gap-2">
                 <div v-if="isCanteen || isDashboard" class="flex justify-end items-center gap-2">
                     <!-- Label Text -->
                     <span class="text-xs uppercase font-bold text-slate-400">

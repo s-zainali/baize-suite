@@ -1517,6 +1517,8 @@ def _push_game_log(log):
     try:
         import central_client, json as _json
         branch = Branch.query.get(log.branch_id) if log.branch_id else None
+        branch_license = BranchLicense.query.filter_by(branch_uid = branch.uid).first()
+        club_uid = branch_license.club_uid
         receipt = {
             'receiptId': log.receipt_id, 'player': log.player, 'customerId': log.customer_id,
             'date': log.date_string, 'lounge': log.lounge, 'tableType': log.table_type,
@@ -1528,16 +1530,20 @@ def _push_game_log(log):
         }
         central_client.push_game({
             'customerId': log.customer_id,
-            'clubUid': branch.club_uid if branch else '',
+            'clubUid': club_uid,
             'branch': branch.name if branch else '',
             'lounge': log.lounge or '',
-            'tableType': log.table_type, 'tableNumber': str(log.table_id),
-            'minutes': log.billable_mins, 'cost': log.total_cost,
-            'paymentStatus': log.payment_status, 'paymentMethod': log.payment_method,
-            'receiptId': str(log.receipt_id), 'receipt': receipt,
+            'tableType': log.table_type, 
+            'tableNumber': str(log.table_id),
+            'minutes': log.billable_mins, 
+            'cost': log.total_cost,
+            'paymentStatus': log.payment_status, 
+            'paymentMethod': log.payment_method,
+            'receiptId': str(log.receipt_id), 
+            'receipt': receipt,
             'playedAt': (log.created_at or datetime.now()).isoformat(),
         })
-    except Exception:
+    except Exception as e:
         pass
 
 
@@ -1577,8 +1583,6 @@ def settle_bill(log_id):
     else:
         return jsonify({'error': 'Status must be paid, pending or khata'}), 400
 
-    print('Pushing Logs!!!!!!!!')
-    print(logs)
     for _lg in logs:
         _push_game_log(_lg)
 
@@ -2443,6 +2447,7 @@ def manage_booking(booking_id):
         b.status = 'cancelled'
         b.deleted_at = datetime.now()
         b.deleted_by = _actor()   
+        
 
         target_url = f"{os.environ.get('CENTRAL_URL')}/api/customer/bookings/sync/{b.sync_id}"
         try:
@@ -2466,6 +2471,8 @@ def manage_booking(booking_id):
             return jsonify({
                 "error": f"Local booking not cancelled because remote node was unreachable: {str(e)}"
             }), 502
+        db.session.commit() 
+        return jsonify({'success': True})
 
     elif request.method == "POST":
         require_capability('floor')
