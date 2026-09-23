@@ -177,7 +177,7 @@
                         <ul v-else
                             class="mt-5 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1 [scrollbar-color:theme(colors.slate.700)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-700/70 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5">
                             <li v-for="game in games" :key="game.id">
-                                <LoggedGame :game="game" :khata="khata" :duration-label="durationLabel"/>
+                                <LoggedGame :game="game" :khata="khata" :duration-label="durationLabel" @open-receipt="openReceipt(game)"/>
                             </li>
                         </ul>
                     </section>
@@ -749,7 +749,8 @@ async function openReceipt(game) {
     receipt.value = null
     try {
         const data = await apiGet(`/games/${game.id}/receipt`)
-        receipt.value = data.receipt
+        console.log(data)
+        receipt.value = data
     } catch (error) {
         receiptError.value = error.message || "Couldn't load that bill"
     } finally {

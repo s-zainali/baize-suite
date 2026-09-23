@@ -267,25 +267,6 @@ class Booking(SyncMixin, db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now())
 
 
-def generate_booking_code():
-    """A short handle the counter can match against the guest's.
-
-    Six uppercase letters (26**6 ≈ 300M) drawn with `secrets`, so a code can't
-    be guessed to claim someone else's slot. Uniqueness is enforced only against
-    bookings that still matter (booked/active) — once one is completed or
-    cancelled its code is free to reappear. Called inside a request, so the
-    Booking query runs within an app context.
-    """
-    for _ in range(20):
-        code = ''.join(secrets.choice(string.ascii_uppercase) for _ in range(6))
-        clash = Booking.query.filter(
-            Booking.code == code,
-            Booking.status.in_(['booked', 'active'])).first()
-        if not clash:
-            return code
-    return code  # 20 straight collisions is astronomically unlikely
-
-
 class ActivityLog(SyncMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     branch_id = db.Column(db.Integer, db.ForeignKey('branch.id'), nullable=True, index=True)
