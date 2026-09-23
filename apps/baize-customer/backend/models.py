@@ -2,7 +2,7 @@
 (Matches the club app's tables, including the sync columns.)"""
 import uuid
 import datetime as dt
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, UniqueConstraint, Text
 from database import Base
 
 class Club(Base):
@@ -71,3 +71,42 @@ class Friendship(Base):
     status = Column(String, default="pending")   # pending | accepted
     created_at = Column(DateTime, default=dt.datetime.utcnow)
     __table_args__ = (UniqueConstraint("requester_id", "addressee_id", name="uq_friend_pair"),)
+
+
+class KhataEntry(Base):
+    """A charge a club left on a customer's tab (khata). Lives in central,
+    keyed by the central customer id + the club that recorded it. settled_at
+    is NULL while it's still owed."""
+    __tablename__ = "khata_entry"
+    id = Column(Integer, primary_key=True)
+    customer_id = Column(Integer, index=True)
+    club_uid = Column(String, index=True)
+    amount = Column(Integer, default=0)
+    description = Column(String, default="")
+    source = Column(String, default="")      # 'session' | 'canteen'
+    ref = Column(String, default="")         # receipt id / order ref
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    settled_at = Column(DateTime)
+
+
+class GameLog(Base):
+    """A session a customer played at a club — their own copy of the club's
+    activity log. Pushed by the club when a bill settles; shown under the
+    customer app's Games, with the receipt snapshot rendered by BillingReceipt."""
+    __tablename__ = "game_log"
+    id = Column(Integer, primary_key=True)
+    customer_id = Column(Integer, index=True)
+    club_uid = Column(String, index=True)
+    club_name = Column(String, default="")
+    branch = Column(String, default="")
+    lounge = Column(String, default="")
+    table_type = Column(String, default="")
+    table_number = Column(String, default="")
+    minutes = Column(Integer, default=0)
+    cost = Column(Integer, default=0)
+    payment_status = Column(String, default="")
+    payment_method = Column(String, default="")
+    receipt_id = Column(String, default="")
+    receipt_json = Column(Text, default="")     # full snapshot for BillingReceipt
+    played_at = Column(DateTime)
+    created_at = Column(DateTime, default=dt.datetime.utcnow)

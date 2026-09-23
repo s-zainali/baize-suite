@@ -268,6 +268,7 @@ useAutoRefresh(attemptConnection, 10000)
 onMounted(async () => {
     await loadSettings()
     showBills.value = settingValue('dashboard_show_bills', true)
+    smallStations.value = settingValue('small_stations', false)
 })
 
 const randomInt = (min, max) => {

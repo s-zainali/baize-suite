@@ -1065,6 +1065,7 @@ DEFAULT_SETTINGS = {
     'canteen_show_bills': True,     # pop the canteen receipt on checkout
     'summary_sticky': False,        # pin the dashboard summary strip to the top
     'allow_active_transfer': False, # allow transferring onto an occupied station (swaps the two tabs)
+    'small_stations': False,        # render the dashboard station cards at half size
 }
 
 
@@ -1445,22 +1446,24 @@ def lookup_customer():
     # this process serves the customer side, but staff always need to look a
     # number up in the same canonical form the accounts were stored in.
     from customer_api import normalise_phone
+    import central_client
 
     phone = normalise_phone(request.args.get('phone', ''))
     if not phone:
         return jsonify({'error': 'Enter a valid mobile number'}), 400
 
-    customer = Customer.query.filter_by(phone=phone).first()
-    if not customer or not customer.is_active:
+    # Customers live in the central app now — resolve there, not locally.
+    customer = central_client.lookup_by_phone(phone)
+    if not customer:
         return jsonify({'found': False, 'error': 'No account with that number'}), 404
 
+    tail = (customer.get('phone') or '')[-4:]
     return jsonify({
         'found': True,
         'customer': {
-            'id': customer.id,
-            'name': customer.name,
-            # Enough to check it's the right person, not enough to harvest.
-            'phone': f'••••••{customer.phone[-4:]}',
+            'id': customer['id'],                    # this is the CENTRAL customer id
+            'name': customer['name'],
+            'phone': f'••••••{tail}',                # enough to confirm, not to harvest
         },
     })
 
@@ -1499,6 +1502,39 @@ def stop_table(uid):
     return jsonify({'success': True, 'invoice': invoice})
 
 
+def _push_game_log(log):
+    """Give a registered player their own copy of the session in the central
+    app (club · branch · lounge · station · duration · amount · receipt).
+    Fails soft — a settle never blocks on central being reachable."""
+    if not getattr(log, 'customer_id', None):
+        return
+    try:
+        import central_client, json as _json
+        branch = Branch.query.get(log.branch_id) if log.branch_id else None
+        receipt = {
+            'receiptId': log.receipt_id, 'player': log.player, 'customerId': log.customer_id,
+            'date': log.date_string, 'lounge': log.lounge, 'tableType': log.table_type,
+            'tableId': log.table_id, 'elapsed': log.elapsed, 'billableMins': log.billable_mins,
+            'rate': log.rate, 'playTotal': log.play_total, 'canteenTotal': log.canteen_total,
+            'canteenItems': _json.loads(log.canteen_json or '[]'), 'totalCost': log.total_cost,
+            'segments': _json.loads(log.segments_json or '[]'),
+            'paymentStatus': log.payment_status, 'paymentMethod': log.payment_method,
+        }
+        central_client.push_game({
+            'customerId': log.customer_id,
+            'clubUid': branch.club_uid if branch else '',
+            'branch': branch.name if branch else '',
+            'lounge': log.lounge or '',
+            'tableType': log.table_type, 'tableNumber': str(log.table_id),
+            'minutes': log.billable_mins, 'cost': log.total_cost,
+            'paymentStatus': log.payment_status, 'paymentMethod': log.payment_method,
+            'receiptId': str(log.receipt_id), 'receipt': receipt,
+            'playedAt': (log.created_at or datetime.now()).isoformat(),
+        })
+    except Exception:
+        pass
+
+
 @app.route('/api/bills/<int:log_id>/settle', methods=['POST'])
 def settle_bill(log_id):
     """Settle a table bill — and anything charged to the same tab.
@@ -1534,6 +1570,9 @@ def settle_bill(log_id):
         paid = 0
     else:
         return jsonify({'error': 'Status must be paid, pending or khata'}), 400
+
+    for _lg in logs:
+        _push_game_log(_lg)
 
     return jsonify({
         'logId': log.id,
@@ -2436,6 +2475,15 @@ def manage_booking(booking_id):
                 _sp = SessionPlayer.query.filter_by(session_id=session.id).first()
                 if _sp and not _sp.customer_id:
                     _sp.customer_id = b.customer_id
+                # Customers live in central — resolve the registered player's
+                # current name from there and label the session with it.
+                import central_client
+                _cust = central_client.get_customer(b.customer_id)
+                if _cust and _cust.get('name'):
+                    if not (session.guest_name or '').strip():
+                        session.guest_name = _cust['name']
+                    if _sp is not None and hasattr(_sp, 'name') and not (getattr(_sp, 'name', '') or '').strip():
+                        _sp.name = _cust['name']
         else:
             # The client may mark the booking started before (or without) the
             # table actually being started. Leaving status='active' with no
