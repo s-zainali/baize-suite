@@ -710,6 +710,22 @@ def players_for(session_id):
     } for r in rows]
 
 
+def _sync_booking_status(sync_id, status):
+    """Best-effort push of a booking's status to central. The LOCAL status is
+    always committed first; if central is unreachable this just no-ops and the
+    sync engine reconciles later. Never raises, never blocks the floor."""
+    if not sync_id:
+        return
+    base = os.environ.get('CENTRAL_URL', '').rstrip('/')
+    if not base:
+        return
+    try:
+        with httpx.Client(timeout=4.0) as client:
+            client.post(f"{base}/api/customer/bookings/sync/{sync_id}/{status}")
+    except Exception:
+        pass
+
+
 def start_session(table, booking_name, players=None):
     # A lingering stopped tab on this station is settled rather than resumed
     if table.session_id:
@@ -770,11 +786,22 @@ def start_session(table, booking_name, players=None):
         pending.session_id = session.id
         if pending.customer_id:
             session.customer_id = pending.customer_id
+            import central_client
+            _cust = central_client.get_customer(pending.customer_id)
+            _name = (_cust.get('name') if _cust else None) or (pending.guest_name or '').strip() or 'Member'
             _sp = SessionPlayer.query.filter_by(session_id=session.id).first()
-            if _sp and not _sp.customer_id:
+            if _sp is None:
+                db.session.add(SessionPlayer(session_id=session.id, name=_name, customer_id=pending.customer_id))
+            elif not _sp.customer_id:
                 _sp.customer_id = pending.customer_id
+                if not (_sp.name or '').strip():
+                    _sp.name = _name
+            if not (session.guest_name or '').strip():
+                session.guest_name = _name
 
-    db.session.commit()
+    db.session.commit()                       # local truth first
+    if pending:
+        _sync_booking_status(pending.sync_id, 'active')   # then best-effort central sync
     return session
 
 
@@ -870,30 +897,9 @@ def end_session(table):
     
     if b:
         b.status = 'completed'
+        db.session.commit()                            # local completion is authoritative
+        _sync_booking_status(b.sync_id, 'completed')   # best-effort central sync (never blocks billing)
 
-        target_url = f"{os.environ.get('CENTRAL_URL')}/api/customer/bookings/sync/{b.sync_id}/completed"
-        try:
-            with httpx.Client(timeout=5.0) as client:
-                res = client.post(target_url)
-
-                if res.status_code not in (200, 201):
-                    # Parse error message from the remote node
-                    if res.headers.get("content-type") == "application/json":
-                        err_msg = res.json().get("error", res.text)
-                    else:
-                        err_msg = res.text
-                        
-                    # Flask approach: Return a JSON response with the remote status code
-                    return jsonify({
-                        "error": f"Local booking not started because remote node rejected request: {err_msg}"
-                    }), res.status_code
-
-        except httpx.RequestError as e:
-            # Flask approach: Return a 502 Bad Gateway response for connection errors
-            return jsonify({
-                "error": f"Local booking not started because remote node was unreachable: {str(e)}"
-            }), 502
-        
     table.is_active = False
     table.start_time = None
     table.session_id = None
@@ -1571,6 +1577,8 @@ def settle_bill(log_id):
     else:
         return jsonify({'error': 'Status must be paid, pending or khata'}), 400
 
+    print('Pushing Logs!!!!!!!!')
+    print(logs)
     for _lg in logs:
         _push_game_log(_lg)
 
@@ -2497,30 +2505,9 @@ def manage_booking(booking_id):
             # to attach it to.
             b.status = 'booked'
             b.session_id = None
-        target_url = f"{os.environ.get('CENTRAL_URL')}/api/customer/bookings/sync/{b.sync_id}/active"
-        try:
-            with httpx.Client(timeout=5.0) as client:
-                res = client.post(target_url)
-
-                if res.status_code not in (200, 201):
-                    # Parse error message from the remote node
-                    if res.headers.get("content-type") == "application/json":
-                        err_msg = res.json().get("error", res.text)
-                    else:
-                        err_msg = res.text
-                        
-                    # Flask approach: Return a JSON response with the remote status code
-                    return jsonify({
-                        "error": f"Local booking not started because remote node rejected request: {err_msg}"
-                    }), res.status_code
-
-        except httpx.RequestError as e:
-            # Flask approach: Return a 502 Bad Gateway response for connection errors
-            return jsonify({
-                "error": f"Local booking not started because remote node was unreachable: {str(e)}"
-            }), 502
-    db.session.commit()
-    return jsonify({'success': True})
+        db.session.commit()                         # local status is the source of truth
+        _sync_booking_status(b.sync_id, 'active')   # best-effort central sync (never blocks)
+        return jsonify({'success': True})
         
 
 @app.route('/api/rates', methods=['POST'])
