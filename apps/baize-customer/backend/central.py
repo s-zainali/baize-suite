@@ -235,7 +235,8 @@ class LocalCentral(Central):
             "endTime": end.isoformat(),
             "guestName": customer.name,
             "phone": customer.phone,
-            "customerId": customer.id
+            "customerId": customer.id,
+            "bookingCode" : booking_code
         }
 
         body = json.dumps(payload).encode()

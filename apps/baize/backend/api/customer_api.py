@@ -589,7 +589,7 @@ def create_booking():
         customer_id=data.get('customerId'),
         start_time=start,
         end_time=end,
-        code=data.get('code'),
+        code=data.get('bookingCode'),
     )
     db.session.add(booking)
     db.session.commit()
