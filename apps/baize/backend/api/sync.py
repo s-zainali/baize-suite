@@ -28,22 +28,18 @@ SYNC_SPEC = [
     ('branch_ref',         None,            []),   # branches come from the licence server
     ('lounge',             Lounge,          [FK('branch_id', 'branch_uid', Branch, 'uid')]),
     ('global_rate',        GlobalRate,      [FK('branch_id', 'branch_uid', Branch, 'uid')]),
-    ('play_session',       PlaySession,     [FK('branch_id', 'branch_uid', Branch, 'uid'),
-                                             FK('customer_id', 'customer_sid', Customer, 'sync_id')]),
+    ('play_session',       PlaySession,     [FK('branch_id', 'branch_uid', Branch, 'uid')]),
     ('pool_table',         PoolTable,       [FK('branch_id', 'branch_uid', Branch, 'uid'),
                                              FK('session_id', 'session_sid', PlaySession, 'sync_id')]),
-    ('session_player',     SessionPlayer,   [FK('session_id', 'session_sid', PlaySession, 'sync_id'),
-                                             FK('customer_id', 'customer_sid', Customer, 'sync_id')]),
+    ('session_player',     SessionPlayer,   [FK('session_id', 'session_sid', PlaySession, 'sync_id')]),
     ('session_segment',    SessionSegment,  [FK('session_id', 'session_sid', PlaySession, 'sync_id')]),
     ('activity_log',       ActivityLog,     [FK('branch_id', 'branch_uid', Branch, 'uid'),
-                                             FK('session_id', 'session_sid', PlaySession, 'sync_id'),
-                                             FK('customer_id', 'customer_sid', Customer, 'sync_id')]),
+                                             FK('session_id', 'session_sid', PlaySession, 'sync_id'),]),
     ('canteen_order',      CanteenOrder,    [FK('branch_id', 'branch_uid', Branch, 'uid'),
                                              FK('session_id', 'session_sid', PlaySession, 'sync_id')]),
     ('canteen_order_item', CanteenOrderItem,[FK('order_id', 'order_sid', CanteenOrder, 'sync_id')]),
     ('queue',              Queue,           [FK('branch_id', 'branch_uid', Branch, 'uid')]),
-    ('booking',            Booking,         [FK('branch_id', 'branch_uid', Branch, 'uid'),
-                                             FK('customer_id', 'customer_sid', Customer, 'sync_id')]),
+    ('booking',            Booking,         [FK('branch_id', 'branch_uid', Branch, 'uid')]),
 ]
 SPEC_BY_NAME = {name: (Model, fks) for name, Model, fks in SYNC_SPEC if Model is not None}
 PUSH_ENTITIES = [name for name, Model, _ in SYNC_SPEC if Model is not None]
