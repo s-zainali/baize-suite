@@ -1523,7 +1523,13 @@ def _push_game_log(log):
         _club_uid = _bl.club_uid if _bl else ''
         branch_license = BranchLicense.query.filter_by(branch_uid = branch.uid).first()
         club_uid = branch_license.club_uid
+        from models import License
+        _lic = License.query.first()
         receipt = {
+            'branding': {
+                'clubName': (_lic.club_name if _lic else '') or '',
+                'logoUrl': (getattr(_lic, 'logo_url', None) if _lic else '') or '',
+            },
             'receiptId': log.receipt_id, 'player': log.player, 'customerId': log.customer_id,
             'date': log.date_string, 'lounge': log.lounge, 'tableType': log.table_type,
             'tableId': log.table_id, 'elapsed': log.elapsed, 'billableMins': log.billable_mins,

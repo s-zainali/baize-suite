@@ -1,75 +1,94 @@
 <template>
-    <div class="group relative overflow-hidden rounded-2xl border p-4 transition-all duration-300"
-        :class="isUnpaid ? 'border-amber-600/40 hover:border-amber-500/70' : 'border-slate-800 hover:border-slate-700'"
-        :style="cardStyle">
+    <div class="overflow-hidden rounded-2xl border transition-colors"
+        :class="isUnpaid ? 'border-amber-700/50 bg-amber-500/[0.04]' : 'border-slate-800 bg-slate-900/50'">
 
-        <!-- felt glow in the table's colour -->
-        <div class="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full opacity-20 blur-3xl transition-opacity duration-300 group-hover:opacity-40"
-            :style="{ background: color }"></div>
-        <!-- faint baize grid -->
-        <div class="pointer-events-none absolute inset-0 opacity-[0.04] felt-grid"></div>
-        <!-- glowing colour spine -->
-        <div class="absolute inset-y-3 left-0 w-1 rounded-full"
-            :style="{ background: color, boxShadow: `0 0 14px ${color}` }"></div>
+        <!-- collapsed row — club name + logo always visible; tap to expand -->
+        <button type="button" @click="open = !open"
+            class="flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-white/[0.02]">
+            <div class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-slate-800">
+                <img v-if="game.clubLogo && !logoFailed" :src="game.clubLogo" alt="" class="h-full w-full object-cover"
+                    @error="logoFailed = true" />
+                <span v-else class="h-2.5 w-2.5 rounded-full" :style="{ background: color }"></span>
+            </div>
+            <div class="min-w-0 flex-1">
+                <p class="truncate text-xs font-bold text-slate-100">{{ game.clubName || 'Session' }}</p>
+                <p class="truncate text-[10px] text-slate-500">
+                    {{ typeLabel(game.tableType) }} #{{ game.tableNumber }} · {{ playedLabel(game) }}
+                </p>
+            </div>
+            <span v-if="isUnpaid"
+                class="shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-amber-400">
+                Unpaid
+            </span>
+            <p class="shrink-0 font-mono text-xs font-bold" :class="isUnpaid ? 'text-amber-400' : 'text-slate-300'">
+                Rs {{ game.cost }}
+            </p>
+            <svg class="h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200"
+                :class="open ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 8l4 4 4-4" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+        </button>
 
-        <div class="relative pl-3">
-            <!-- header: club + type pill -->
-            <div class="flex items-start justify-between gap-3">
+        <!-- expanded — everything, one clean flow -->
+        <div v-if="open" class="border-t border-white/5 px-3.5 pb-3.5 pt-3">
+            <!-- club header -->
+            <div class="flex items-center gap-3">
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-slate-800">
+                    <img v-if="game.clubLogo && !logoFailed" :src="game.clubLogo" alt="" class="h-full w-full object-cover" />
+                    <span v-else class="text-sm font-black" :style="{ color }">{{ (game.clubName || 'S').charAt(0) }}</span>
+                </div>
                 <div class="min-w-0">
-                    <h3 class="truncate text-sm font-black text-slate-100">{{ game.clubName || 'Session' }}</h3>
+                    <p class="truncate text-sm font-black text-slate-100">{{ game.clubName || 'Session' }}</p>
                     <p class="truncate text-[11px] text-slate-500">
                         {{ game.branch || '—' }}<span v-if="game.lounge"> · {{ game.lounge }}</span>
                     </p>
                 </div>
-                <span class="shrink-0 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-widest"
-                    :style="{ color, backgroundColor: `${color}1a`, border: `1px solid ${color}40` }">
-                    {{ typeLabel(game.tableType) }} <span class="opacity-70">#{{ game.tableNumber }}</span>
-                </span>
             </div>
 
-            <!-- hero: duration + total -->
-            <div class="mt-4 flex items-end justify-between">
-                <div>
-                    <p class="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">Played</p>
-                    <p class="mt-0.5 font-mono text-2xl font-black leading-none text-slate-100">
-                        {{ durationLabel(game.minutes) }}
-                    </p>
+            <!-- detail rows -->
+            <dl class="mt-3 space-y-2 rounded-xl bg-black/20 p-3">
+                <div class="flex items-center justify-between">
+                    <dt class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Station</dt>
+                    <dd class="text-xs font-bold" :style="{ color }">{{ typeLabel(game.tableType) }} #{{ game.tableNumber }}</dd>
                 </div>
-                <div class="text-right">
-                    <p class="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">Total</p>
-                    <p class="mt-0.5 font-mono text-2xl font-black leading-none"
-                        :class="isUnpaid ? 'text-amber-400' : 'text-emerald-400'">
-                        <span class="align-top text-xs opacity-70">Rs </span>{{ game.cost }}
-                    </p>
+                <div class="flex items-center justify-between">
+                    <dt class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Played</dt>
+                    <dd class="text-xs font-bold text-slate-200">{{ playedFull(game) }}</dd>
                 </div>
-            </div>
+                <div class="flex items-center justify-between">
+                    <dt class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Duration</dt>
+                    <dd class="font-mono text-xs font-bold text-slate-200">{{ durationLabel(game.minutes) }}</dd>
+                </div>
+                <div class="flex items-center justify-between">
+                    <dt class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Amount</dt>
+                    <dd class="font-mono text-xs font-bold" :class="isUnpaid ? 'text-amber-400' : 'text-emerald-400'">
+                        Rs {{ game.cost }}
+                    </dd>
+                </div>
+                <div class="flex items-center justify-between">
+                    <dt class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Status</dt>
+                    <dd>
+                        <span class="rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider"
+                            :class="isUnpaid ? 'bg-amber-500/15 text-amber-400' : 'bg-emerald-500/15 text-emerald-400'">
+                            {{ isUnpaid ? 'Unpaid · settle at counter' : 'Paid' }}
+                        </span>
+                    </dd>
+                </div>
+            </dl>
 
-            <!-- footer: when · status · receipt -->
-            <div class="mt-4 flex items-center justify-between border-t border-white/5 pt-3">
-                <span class="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
-                    <span class="h-1 w-1 rounded-full" :style="{ background: color }"></span>
-                    {{ playedLabel(game) }}
-                </span>
-                <div class="flex items-center gap-2">
-                    <span v-if="isUnpaid"
-                        class="rounded-md bg-amber-500/15 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-amber-400">
-                        Unpaid
-                    </span>
-                    <button type="button" @click="$emit('open-receipt')"
-                        class="cursor-pointer rounded-lg border px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-all"
-                        :class="isUnpaid
-                            ? 'border-amber-600/60 text-amber-300 hover:bg-amber-500/20'
-                            : 'border-slate-700 text-slate-300 hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300'">
-                        Receipt
-                    </button>
-                </div>
-            </div>
+            <button type="button" @click.stop="$emit('open-receipt')"
+                class="mt-3 w-full cursor-pointer rounded-xl border py-2 text-[9px] font-black uppercase tracking-widest transition-colors"
+                :class="isUnpaid
+                    ? 'border-amber-600/60 text-amber-300 hover:bg-amber-500/15'
+                    : 'border-slate-700 text-slate-300 hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300'">
+                View receipt
+            </button>
         </div>
     </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { typeLabel, typeColor } from '@baize/ui'
 
 const props = defineProps({
@@ -79,14 +98,11 @@ const props = defineProps({
 })
 defineEmits(['open-receipt'])
 
+const open = ref(false)
+const logoFailed = ref(false)
 const color = computed(() => typeColor(props.game.tableType))
 const isUnpaid = computed(() =>
     (props.khata?.bills || []).some((b) => b.ref === props.game.receiptId))
-
-// A whisper of the table's colour bled into the felt of the card.
-const cardStyle = computed(() => ({
-    background: `linear-gradient(135deg, ${color.value}12 0%, rgba(15,23,42,0.7) 46%, rgba(2,6,23,0.85) 100%)`,
-}))
 
 function playedLabel(game) {
     if (!game.playedAt) return game.date || ''
@@ -99,14 +115,10 @@ function playedLabel(game) {
     if (sameDay(when, yesterday)) return `Yesterday, ${time}`
     return `${when.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}, ${time}`
 }
-</script>
-
-<style scoped>
-/* subtle woven-baize texture */
-.felt-grid {
-    background-image:
-        linear-gradient(rgba(255, 255, 255, 0.6) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.6) 1px, transparent 1px);
-    background-size: 7px 7px;
+function playedFull(game) {
+    if (!game.playedAt) return game.date || '—'
+    const when = new Date(game.playedAt)
+    return when.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+        + ', ' + when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
-</style>
+</script>

@@ -316,8 +316,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { qrMatrix, qrSvgPath, easypaisaPayload } from '../utils/qr.js'
-
-loadBranding()
 const PRINT_WIDTH_MM = 80
 const PX_TO_MM = 0.264583
 
@@ -446,8 +444,8 @@ const props = defineProps({
     readOnly: { type: Boolean, default: false },
     embedded: { type: Boolean, default: false },
     dismissable: { type: Boolean, default: false },
-    branding: {type: Object, default: {clubName: null, logoUrl: null}},
-    entitlements: {type: Array, default: []},
+    branding: { type: Object, default: () => ({ clubName: null, logoUrl: null, address: '' }) },
+    entitlements: { type: Array, default: () => [] },
     /**
      * 'session' — a table's time-based bill (the default)
      * 'canteen' — a counter sale: itemised goods, no clock, no split

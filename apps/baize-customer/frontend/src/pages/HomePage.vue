@@ -504,7 +504,8 @@
                 </button>
             </div>
 
-            <BillingReceipt v-else-if="receipt" :receipt="receipt" :read-only="true" @close="closeReceipt" />
+            <BillingReceipt v-else-if="receipt" :receipt="receipt" :branding="receipt.branding"
+                :api-url="receipt.logoBase" :read-only="true" @close="closeReceipt" />
         </div>
     </div>
 </template>

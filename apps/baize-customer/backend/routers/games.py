@@ -70,7 +70,19 @@ def record(body: GameIn, s: Session = Depends(get_db)):
 def my_games(limit: int = 50, c: Customer = Depends(current_customer), s: Session = Depends(get_db)):
     rows = (s.query(GameLog).filter(GameLog.customer_id == c.id)
             .order_by(GameLog.played_at.desc(), GameLog.id.desc()).limit(limit).all())
+    # resolve each club's logo (path is in the receipt snapshot; base is the node URL)
+    clubs = {cl.uuid: cl for cl in s.query(Club)
+             .filter(Club.uuid.in_({g.club_uid for g in rows if g.club_uid})).all()}
+
+    def _logo(g):
+        club = clubs.get(g.club_uid)
+        path = (json.loads(g.receipt_json or '{}').get('branding') or {}).get('logoUrl')
+        if club and club.public_url and path:
+            return f"{club.public_url.rstrip('/')}{path}"
+        return None
+
     games = [{"id": g.id, "clubName": g.club_name, "branch": g.branch, "lounge": g.lounge,
+              "clubLogo": _logo(g),
               "tableType": g.table_type, "tableNumber": g.table_number, "minutes": g.minutes,
               "cost": g.cost, "receiptId": g.receipt_id, "paymentStatus": g.payment_status,
               "playedAt": g.played_at.isoformat() if g.played_at else None} for g in rows]
@@ -86,4 +98,13 @@ def game_receipt(game_id: int, c: Customer = Depends(current_customer), s: Sessi
     g = s.query(GameLog).filter(GameLog.id == game_id, GameLog.customer_id == c.id).first()
     if not g:
         raise HTTPException(404, "No such game.")
-    return json.loads(g.receipt_json or "{}")
+    receipt = json.loads(g.receipt_json or "{}")
+    # The club logo lives on the club's own server — tell the receipt where to
+    # load it from, and backfill name/address from the registry if needed.
+    club = s.query(Club).filter(Club.uuid == g.club_uid).first() if g.club_uid else None
+    receipt["logoBase"] = (club.public_url.rstrip("/") if club and club.public_url else "")
+    b = receipt.setdefault("branding", {})
+    if club:
+        b.setdefault("clubName", club.club_name)
+        b.setdefault("address", club.address or "")
+    return receipt
