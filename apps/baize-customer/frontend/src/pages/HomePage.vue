@@ -518,7 +518,9 @@ import { customer, signOut, apiGet, apiPost, apiDelete } from '../auth.js'
 import { fetchClubs, cancelBooking } from '../api.js'
 import ClubCard from '@/components/ClubCard.vue'
 import LoggedGame from '@/components/LoggedGame.vue'
+import { usePageBackground } from '@baize/ui'
 
+usePageBackground('#0f172a')
 const router = useRouter()
 
 // Navigation tab state

@@ -33,7 +33,7 @@
         <div v-else class="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-4">
             <!-- LEFT: booking form -->
             <div
-                class="bg-slate-950/40 border border-slate-700 rounded-2xl p-5 h-fit w-full mx-auto lg:mx-0 lg:sticky lg:top-6">
+                class="bg-slate-800 border border-slate-700 rounded-2xl p-5 h-fit w-full mx-auto lg:mx-0 lg:sticky lg:top-6">
                 <span class="text-[10px] uppercase font-black tracking-widest text-slate-500 block mb-4">
                     Reservation Details</span>
 
