@@ -291,11 +291,13 @@ import { ref, reactive, computed, watch, nextTick, onMounted, onUnmounted, h } f
 import { useRouter } from 'vue-router'
 import {TextField} from '@baize/ui'
 import {PasswordField} from '@baize/ui'
+import { usePageBackground } from '@baize/ui'
 import {PhoneField} from '@baize/ui'
 import { isValidPhone, maskPhone } from '@baize/ui'
 import {PoweredByZain} from '@baize/ui'
-import {TableVisual} from '@baize/ui'
 import * as customerApi from '../api.js'
+
+usePageBackground('#020618')
 
 const router = useRouter()
 const clubName = ref('')

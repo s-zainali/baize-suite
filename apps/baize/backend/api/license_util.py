@@ -236,7 +236,8 @@ def _touch_last_seen(lic):
 # ── public API ───────────────────────────────────────────────────────────────
 
 def active_license():
-    return License.query.order_by(License.id.desc()).first()
+    lic = License.query.order_by(License.id.desc()).first()
+    return lic
 
 
 def _reason_text(status):
