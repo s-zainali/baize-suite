@@ -1528,7 +1528,7 @@ def _push_game_log(log):
         receipt = {
             'branding': {
                 'clubName': (_lic.club_name if _lic else '') or '',
-                'logoUrl': (getattr(_lic, 'logo_url', None) if _lic else '') or '',
+                'logoUrl': _brand_logo_url(club_uid) or '',
             },
             'receiptId': log.receipt_id, 'player': log.player, 'customerId': log.customer_id,
             'date': log.date_string, 'lounge': log.lounge, 'tableType': log.table_type,

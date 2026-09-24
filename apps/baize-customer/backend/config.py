@@ -22,6 +22,9 @@ CLUB_UID     = os.environ.get("CLUB_UID")               # scope to one club; Non
 CENTRAL_API_URL = os.environ.get("CENTRAL_API_URL")     # e.g. https://central.baize.app
 CENTRAL_API_KEY = os.environ.get("CENTRAL_API_KEY")
 
+# Canonical branding host — where club logos are served (/branding/<uid>/logo).
+LICENSE_SERVER_URL = os.environ.get("LICENSE_SERVER_URL", "https://baize-license-server.onrender.com").rstrip("/")
+
 # Shared secret for signing calls to club nodes (must match each club's env).
 BRIDGE_SECRET = os.environ.get("BRIDGE_SECRET", "")
 

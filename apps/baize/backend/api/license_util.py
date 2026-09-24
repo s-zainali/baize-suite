@@ -235,9 +235,43 @@ def _touch_last_seen(lic):
 
 # ── public API ───────────────────────────────────────────────────────────────
 
-def active_license():
-    lic = License.query.order_by(License.id.desc()).first()
+def _provision_club_row():
+    """Branch-only installs carry no *club* licence, yet club-level identity
+    (name, logo, aggregate entitlements) still needs one persistent home.
+    Derive a single club row from the valid branch licences so club-level code
+    (branding, logo upload, sync token) has a real, writable record whenever
+    the install is genuinely licensed. Idempotent: keyed by club_uid."""
+    valid = [bl for bl in BranchLicense.query.all() if _branch_valid(bl)]
+    if not valid:
+        return None
+    rep = max(valid, key=lambda b: b.expires_at or datetime.min)
+    lic = License.query.filter_by(club_uid=rep.club_uid).first()
+    if lic is None:
+        lic = License(club_uid=rep.club_uid, club_name='')   # name filled by heartbeat
+        db.session.add(lic)
+    lic.token = rep.token
+    ents = sorted({e for bl in valid for e in (json.loads(bl.entitlements or '[]'))})
+    lic.entitlements = json.dumps(ents)
+    lic.issued_at = min((b.issued_at for b in valid if b.issued_at), default=lic.issued_at)
+    lic.expires_at = max((b.expires_at for b in valid if b.expires_at), default=rep.expires_at)
+    lic.revoked_at = None
+    lic.server_status = 'active'
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        lic = License.query.filter_by(club_uid=rep.club_uid).first()
     return lic
+
+
+def active_license():
+    """The club-level licence record. Prefer a real club licence if one was
+    ever activated; otherwise derive one from the branch licences (the actual
+    model in use), so this is never None on a licensed install."""
+    lic = License.query.order_by(License.id.desc()).first()
+    if lic:
+        return lic
+    return _provision_club_row()
 
 
 def _reason_text(status):
@@ -513,6 +547,14 @@ def _branch_heartbeat(bl):
         if reason in ("revoked", "suspended", "archived"):
             bl.revoked_at = now                  # sticky per-branch hard stop
     db.session.commit()
+    # Cache the club's display name from the server so club-level branding has
+    # a source (the branch token itself doesn't carry it).
+    _cn = data.get("clubName")
+    if _cn:
+        _lic = active_license()                  # provisions the club row if needed
+        if _lic and (_lic.club_name or "") != _cn:
+            _lic.club_name = _cn
+            db.session.commit()
 
 
 def _branch_valid(bl):
@@ -548,6 +590,15 @@ def heartbeat_branches():
             _branch_valid(bl)
         except Exception:
             pass
+
+def _brand_logo_url(club_uid):
+    """The ONE canonical logo URL: the licence server's branding route, absolute
+    so every app (club, customer, admin) loads the same image regardless of
+    where it runs. This is the single source of truth for a club's logo."""
+    if not club_uid or not LICENSE_SERVER_URL:
+        return None
+    return f"{LICENSE_SERVER_URL}/branding/{club_uid}/logo"
+
 
 def _local_logo_url(club_uid):
     try:

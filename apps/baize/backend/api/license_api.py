@@ -21,8 +21,7 @@ from werkzeug.utils import secure_filename
 from models import db
 from license_util import (
     verify_token, store_license, license_status, active_license, LicenseError,
-    device_fingerprint, clear_license, store_branch_license,
-)
+    device_fingerprint, clear_license, store_branch_license, _brand_logo_url, is_licensed)
 
 license_bp = Blueprint("license", __name__, url_prefix="/api")
 
@@ -44,7 +43,7 @@ def register_license_routes(app, require_role):
         lic = active_license()
         return jsonify({
             "clubName": lic.club_name if lic else None,
-            "logoUrl": lic.logo_url if lic else None,
+            "logoUrl": (lic.logo_url or _brand_logo_url(lic.club_uid)) if lic else None,  # local first, licence-server fallback
         })
 
     @license_bp.route("/license", methods=["GET"])
@@ -136,9 +135,9 @@ def register_license_routes(app, require_role):
     @license_bp.route("/license/logo", methods=["POST"])
     def upload_logo():
         require_role("owner")
-        lic = active_license()
-        if not lic:
+        if not is_licensed():
             return jsonify({"error": "Activate a license before uploading a logo."}), 400
+        lic = active_license()   # provisioned from the branch licences; non-None once licensed
         if "logo" not in request.files or request.files["logo"].filename == "":
             return jsonify({"error": "No file provided."}), 400
         file = request.files["logo"]

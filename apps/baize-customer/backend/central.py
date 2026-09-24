@@ -9,6 +9,7 @@ from standalone to the central network is a one-line config change.
 from __future__ import annotations
 import datetime as dt
 import uuid
+import config
 from abc import ABC, abstractmethod
 from typing import Optional
 from fastapi import HTTPException
@@ -82,7 +83,8 @@ class LocalCentral(Central):
                 "city": city,
                 "address": address,
                 "branches": 1,
-                "favourite": c.uuid in fav_uids
+                "favourite": c.uuid in fav_uids,
+                "logoUrl": f"{config.LICENSE_SERVER_URL}/branding/{c.uuid}/logo" if config.LICENSE_SERVER_URL else None,
             })
             
         return sorted(out, key=lambda x: x["name"].lower())

@@ -10,7 +10,7 @@
             <div class="text-center space-y-1 mb-4">
                 <h3 class="text-base font-black tracking-widest uppercase">{{ title }}</h3>
                 <div class="flex flex-col items-center justify-center gap-2">
-                    <img :src="`${API_URL}${branding['logoUrl']}`" class="w-20" alt="">
+                    <img :src="logoSrc" class="w-20" alt="">
                     <p class="text-[15px] text-slate-500 leading-none uppercase mb-2">{{ branding['clubName'] }}</p>
                 </div>
                 <p class="text-[10px] text-slate-400 leading-none font-sans">{{ receipt.date }}</p>
@@ -438,6 +438,7 @@ async function printBill() {
     }
 }
 
+const _absoluteLogo = (u) => /^https?:\/\//i.test(u || "")
 const props = defineProps({
     receipt: { type: Object, required: true },
     // readOnly: true when viewing from logs — hides the Split Bill button, changes close label
@@ -453,6 +454,13 @@ const props = defineProps({
      */
     variant: { type: String, default: 'session' },
     API_URL: { type: String, default: '' }
+})
+
+// One canonical logo resolution: absolute URLs (the licence-server branding
+// route) are used as-is; a bare path falls back to API_URL for legacy cases.
+const logoSrc = computed(() => {
+    const u = (props.branding && props.branding.logoUrl) || ''
+    return u ? (_absoluteLogo(u) ? u : `${props.API_URL}${u}`) : ''
 })
 
 // The parent performs the request: this component is shared with the customer

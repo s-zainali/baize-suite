@@ -10,7 +10,7 @@
             <div class="text-center space-y-1 mb-4">
                 <h3 class="text-base font-black tracking-widest uppercase">{{ title }}</h3>
                 <div class="flex flex-col items-center justify-center gap-2">
-                    <img :src="`${API_URL}${branding['logoUrl']}`" class="w-20" alt="">
+                    <img :src="logoSrc" class="w-20" alt="">
                     <p class="text-[15px] text-slate-500 leading-none uppercase mb-2">{{ branding['clubName'] }}</p>
                 </div>
                 <p class="text-[10px] text-slate-400 leading-none font-sans">{{ receipt.date }}</p>
@@ -320,8 +320,16 @@ import { branding, hasFeature, loadBranding, loadLicense } from '@/composables/u
 import { branchHasFeature } from '@/composables/useBranch.js'
 import { API_URL } from '@/Auth'
 
+// Canonical logo resolution for the club-side receipt (branding comes from
+// useLicense, not props): absolute licence-server URLs are used as-is; a bare
+// path falls back to the API base for legacy local logos.
+const logoSrc = computed(() => {
+    const u = (branding.value && branding.value.logoUrl) || ''
+    return u ? (_absoluteLogo(u) ? u : `${API_URL}${u}`) : ''
+})
 
-onMounted(() => loadLicense(), loadBranding())
+
+onMounted(() => { loadLicense(); loadBranding() })
 const PRINT_WIDTH_MM = 80
 const PX_TO_MM = 0.264583
 
@@ -444,6 +452,7 @@ async function printBill() {
     }
 }
 
+const _absoluteLogo = (u) => /^https?:\/\//i.test(u || "")
 const props = defineProps({
     receipt: { type: Object, required: true },
     // readOnly: true when viewing from logs — hides the Split Bill button, changes close label

@@ -75,11 +75,13 @@ def my_games(limit: int = 50, c: Customer = Depends(current_customer), s: Sessio
              .filter(Club.uuid.in_({g.club_uid for g in rows if g.club_uid})).all()}
 
     def _logo(g):
-        club = clubs.get(g.club_uid)
         path = (json.loads(g.receipt_json or '{}').get('branding') or {}).get('logoUrl')
-        if club and club.public_url and path:
-            return f"{club.public_url.rstrip('/')}{path}"
-        return None
+        if not path:
+            return None
+        if path.startswith('http'):        # canonical absolute URL (licence server)
+            return path
+        club = clubs.get(g.club_uid)        # legacy relative path → prefix node URL
+        return f"{club.public_url.rstrip('/')}{path}" if club and club.public_url else None
 
     games = [{"id": g.id, "clubName": g.club_name, "branch": g.branch, "lounge": g.lounge,
               "clubLogo": _logo(g),

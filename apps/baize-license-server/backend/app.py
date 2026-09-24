@@ -825,9 +825,11 @@ def branch_heartbeat(branch_uid):
         return jsonify({"valid": False, "status": "unknown", "reason": "unknown"})
     st = b.status                                   # active | revoked | archived | expired
     valid = (st == "active")
+    club = Club.query.get(b.club_id)
     return jsonify({"valid": valid, "status": st,
                     "reason": None if valid else st,
-                    "token": b.token if valid else None})
+                    "token": b.token if valid else None,
+                    "clubName": club.club_name if club else ""})
 
 
 # ── Owner-facing branch management (from the app's Manage License page).

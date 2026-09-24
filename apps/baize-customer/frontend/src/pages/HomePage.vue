@@ -518,9 +518,7 @@ import { customer, signOut, apiGet, apiPost, apiDelete } from '../auth.js'
 import { fetchClubs, cancelBooking } from '../api.js'
 import ClubCard from '@/components/ClubCard.vue'
 import LoggedGame from '@/components/LoggedGame.vue'
-import { usePageBackground } from '@baize/ui'
 
-usePageBackground('#0f172a')
 const router = useRouter()
 
 // Navigation tab state
@@ -711,7 +709,8 @@ async function loadClubs() {
             name: c.name,
             location: [c.address, c.city].filter(Boolean).join(', ') || 'Address on request',
             branchesCount: c.branches || 1,
-            isFavourite: Boolean(c.favourite)
+            isFavourite: Boolean(c.favourite),
+            logoUrl: c.logoUrl || null
         }))
     } catch (err) {
         console.error('Failed to fetch clubs directory:', err)
