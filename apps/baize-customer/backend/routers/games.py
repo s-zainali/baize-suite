@@ -75,13 +75,8 @@ def my_games(limit: int = 50, c: Customer = Depends(current_customer), s: Sessio
              .filter(Club.uuid.in_({g.club_uid for g in rows if g.club_uid})).all()}
 
     def _logo(g):
-        path = (json.loads(g.receipt_json or '{}').get('branding') or {}).get('logoUrl')
-        if not path:
-            return None
-        if path.startswith('http'):        # canonical absolute URL (licence server)
-            return path
-        club = clubs.get(g.club_uid)        # legacy relative path → prefix node URL
-        return f"{club.public_url.rstrip('/')}{path}" if club and club.public_url else None
+        club = clubs.get(g.club_uid)
+        return f"{club.public_url.rstrip('/')}/api/branding/logo" if club and club.public_url else None
 
     games = [{"id": g.id, "clubName": g.club_name, "branch": g.branch, "lounge": g.lounge,
               "clubLogo": _logo(g),
@@ -104,9 +99,11 @@ def game_receipt(game_id: int, c: Customer = Depends(current_customer), s: Sessi
     # The club logo lives on the club's own server — tell the receipt where to
     # load it from, and backfill name/address from the registry if needed.
     club = s.query(Club).filter(Club.uuid == g.club_uid).first() if g.club_uid else None
-    receipt["logoBase"] = (club.public_url.rstrip("/") if club and club.public_url else "")
     b = receipt.setdefault("branding", {})
     if club:
         b.setdefault("clubName", club.club_name)
         b.setdefault("address", club.address or "")
+        if club.public_url:                       # the club serves its own logo
+            b["logoUrl"] = f"{club.public_url.rstrip('/')}/api/branding/logo"
+    receipt["logoBase"] = ""                        # logoUrl is absolute
     return receipt

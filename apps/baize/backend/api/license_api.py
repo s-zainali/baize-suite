@@ -175,6 +175,24 @@ def register_license_routes(app, require_role):
                 pass
         return jsonify({"logoUrl": lic.logo_url})
 
+    @license_bp.route("/branding/logo", methods=["GET"])
+    def serve_current_logo():
+        """Stable public URL for the club's CURRENT logo, so other apps (the
+        customer app) can reference it by the club's public_url without knowing
+        the timestamped filename. Falls back to the newest uploaded file."""
+        lic = active_license()
+        url = (getattr(lic, "logo_url", None) if lic else None) or ""
+        if url.startswith("/license/media/"):
+            fn = url.rsplit("/", 1)[-1]
+            if os.path.exists(os.path.join(UPLOAD_FOLDER, fn)):
+                return send_from_directory(UPLOAD_FOLDER, fn)
+        import glob
+        files = sorted(glob.glob(os.path.join(UPLOAD_FOLDER, "logo_*")),
+                       key=os.path.getmtime, reverse=True)
+        if files:
+            return send_from_directory(UPLOAD_FOLDER, os.path.basename(files[0]))
+        return ("", 404)
+
     @license_bp.route("/license/media/<path:filename>", methods=["GET"])
     def serve_logo(filename):
         """Public: the logo is shown before login and on the customer portal."""

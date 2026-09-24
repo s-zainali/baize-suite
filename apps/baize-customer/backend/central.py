@@ -84,7 +84,7 @@ class LocalCentral(Central):
                 "address": address,
                 "branches": 1,
                 "favourite": c.uuid in fav_uids,
-                "logoUrl": f"{config.LICENSE_SERVER_URL}/branding/{c.uuid}/logo" if config.LICENSE_SERVER_URL else None,
+                "logoUrl": f"{c.public_url.rstrip('/')}/api/branding/logo" if c.public_url else None,
             })
             
         return sorted(out, key=lambda x: x["name"].lower())
