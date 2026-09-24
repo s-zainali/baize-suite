@@ -25,6 +25,8 @@ def _validate_public_url(url: str):
     if not url:
         return
     u = urlparse(url)
+    if not config.IS_PROD:
+        return   # dev/local installs may use http://localhost:PORT etc.
     if u.scheme != "https":
         raise HTTPException(400, "public_url must be https.")
     host = u.hostname or ""
@@ -52,6 +54,7 @@ class ClubIn(BaseModel):
     city: Optional[str] = ""
     address: Optional[str] = ""
     country: Optional[str] = ""
+    branches: Optional[int] = 1
     notes: Optional[str] = ""
 
 
@@ -65,6 +68,7 @@ def register_club(body: ClubIn, s: Session = Depends(get_db)):
     club.club_name = body.clubName
     _validate_public_url((body.publicUrl or "").strip())
     club.public_url = (body.publicUrl or "").strip()
+    club.branches = max(1, int(body.branches or 1))
     club.city = body.city or ""
     club.address = body.address or ""
     club.country = body.country or ""

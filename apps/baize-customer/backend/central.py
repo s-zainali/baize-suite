@@ -82,7 +82,7 @@ class LocalCentral(Central):
                 "name": name,
                 "city": city,
                 "address": address,
-                "branches": 1,
+                "branches": getattr(c, "branches", 1) or 1,
                 "favourite": c.uuid in fav_uids,
                 "logoUrl": f"{c.public_url.rstrip('/')}/api/branding/logo" if c.public_url else None,
             })

@@ -16,6 +16,7 @@ class Club(Base):
     city = Column(String(80), default="")
     country = Column(String(80), default="")
     notes = Column(String, default="")
+    branches = Column(Integer, default=1)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=dt.datetime.utcnow)
 

@@ -534,6 +534,7 @@ def enlist_club(club_uuid):
             res = httpx.post(f"{base}/api/registry/clubs", headers=headers, timeout=10.0, json={
                 "uuid": club.uuid, "clubName": club.club_name, "publicUrl": club_url,
                 "city": club.city, "address": club.address, "country": club.country,
+                "branches": Branch.query.filter_by(club_id=club.id).count() or 1,
                 "notes": club.notes or "",
             })
             if res.status_code >= 400:
