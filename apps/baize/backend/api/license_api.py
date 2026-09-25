@@ -43,7 +43,7 @@ def register_license_routes(app, require_role):
         lic = active_license()
         return jsonify({
             "clubName": lic.club_name if lic else None,
-            "logoUrl": (lic.logo_url or _brand_logo_url(lic.club_uid)) if lic else None,  # local first, licence-server fallback
+            "logoUrl": (lic.logo_url or None) if lic else None,   # CDN URL set at upload
         })
 
     @license_bp.route("/license", methods=["GET"])
@@ -148,31 +148,24 @@ def register_license_routes(app, require_role):
         if file.tell() > 4 * 1024 * 1024:
             return jsonify({"error": "Logo must be under 4 MB."}), 400
         file.seek(0)
+        raw = file.read()
+        # Prefer the CDN — persistent, global, and no DB/disk growth as clubs
+        # scale. Fall back to local disk only when the CDN isn't configured (dev).
+        from cdn import upload_logo_to_cdn, cdn_configured
+        if cdn_configured():
+            try:
+                cdn_url = upload_logo_to_cdn(lic.club_uid, raw, ext)
+            except Exception as e:
+                return jsonify({"error": f"Logo upload to CDN failed: {e}"}), 502
+            lic.logo_url = cdn_url
+            db.session.commit()
+            return jsonify({"logoUrl": lic.logo_url})
+        # ── dev fallback: local disk (ephemeral on Render; fine for local dev) ──
         filename = secure_filename(f"logo_{lic.club_uid}_{int(datetime.now().timestamp())}.{ext}")
-        file.save(os.path.join(UPLOAD_FOLDER, filename))
-        # Stored WITHOUT the /api prefix: the frontend prepends API_URL (= "/api")
-        # when it renders the logo (BillingReceipt, ManageLicensePage.resolveLogoSrc).
+        with open(os.path.join(UPLOAD_FOLDER, filename), "wb") as _fh:
+            _fh.write(raw)
         lic.logo_url = f"/license/media/{filename}"
         db.session.commit()
-        # Back the logo up on the licence server (keyed by club uuid) so it
-        # survives a reinstall / new device. Best-effort: the local copy above
-        # is what's actually served, so an offline push failing is harmless.
-        if LICENSE_SERVER_URL and lic.club_uid and lic.token:
-            try:
-                with open(os.path.join(UPLOAD_FOLDER, filename), "rb") as _fh:
-                    raw = _fh.read()
-                boundary = "----baize" + _uuid.uuid4().hex
-                body = (
-                    f"--{boundary}\r\nContent-Disposition: form-data; name=\"token\"\r\n\r\n{lic.token}\r\n".encode()
-                    + f"--{boundary}\r\nContent-Disposition: form-data; name=\"logo\"; filename=\"{filename}\"\r\nContent-Type: image/{ext}\r\n\r\n".encode()
-                    + raw + f"\r\n--{boundary}--\r\n".encode()
-                )
-                req = urllib.request.Request(
-                    f"{LICENSE_SERVER_URL}/license/{lic.club_uid}/logo", data=body,
-                    headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}, method="POST")
-                urllib.request.urlopen(req, timeout=6)
-            except Exception:
-                pass
         return jsonify({"logoUrl": lic.logo_url})
 
     @license_bp.route("/branding/logo", methods=["GET"])

@@ -2,6 +2,7 @@
 Clubs push here on settle (bridge-authed); the customer reads their own (JWT)."""
 import datetime as dt
 import json
+from cdn import cdn_logo_url
 from collections import Counter
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
@@ -75,8 +76,7 @@ def my_games(limit: int = 50, c: Customer = Depends(current_customer), s: Sessio
              .filter(Club.uuid.in_({g.club_uid for g in rows if g.club_uid})).all()}
 
     def _logo(g):
-        club = clubs.get(g.club_uid)
-        return f"{club.public_url.rstrip('/')}/api/branding/logo" if club and club.public_url else None
+        return cdn_logo_url(g.club_uid)
 
     games = [{"id": g.id, "clubName": g.club_name, "branch": g.branch, "lounge": g.lounge,
               "clubLogo": _logo(g),
@@ -103,7 +103,6 @@ def game_receipt(game_id: int, c: Customer = Depends(current_customer), s: Sessi
     if club:
         b.setdefault("clubName", club.club_name)
         b.setdefault("address", club.address or "")
-        if club.public_url:                       # the club serves its own logo
-            b["logoUrl"] = f"{club.public_url.rstrip('/')}/api/branding/logo"
-    receipt["logoBase"] = ""                        # logoUrl is absolute
+    b["logoUrl"] = cdn_logo_url(g.club_uid)          # deterministic CDN URL
+    receipt["logoBase"] = ""                          # logoUrl is absolute
     return receipt

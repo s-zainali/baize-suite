@@ -10,6 +10,7 @@ from __future__ import annotations
 import datetime as dt
 import uuid
 import config
+from cdn import cdn_logo_url
 from abc import ABC, abstractmethod
 from typing import Optional
 from fastapi import HTTPException
@@ -84,7 +85,7 @@ class LocalCentral(Central):
                 "address": address,
                 "branches": getattr(c, "branches", 1) or 1,
                 "favourite": c.uuid in fav_uids,
-                "logoUrl": f"{c.public_url.rstrip('/')}/api/branding/logo" if c.public_url else None,
+                "logoUrl": cdn_logo_url(c.uuid),
             })
             
         return sorted(out, key=lambda x: x["name"].lower())
