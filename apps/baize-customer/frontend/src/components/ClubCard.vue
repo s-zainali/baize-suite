@@ -5,7 +5,7 @@
         <!-- logo poster background (~50% opacity) with a scrim for legibility -->
         <div class="pointer-events-none absolute inset-0">
             <img v-if="logoSrc && !logoFailed" :src="logoSrc" alt=""
-                class="h-full w-full object-cover opacity-50 transition-transform duration-700 ease-out group-hover:scale-105"
+                class="h-full w-full object-cover translate-x-25 opacity-50 transition-transform duration-700 ease-out group-hover:scale-105"
                 @error="logoFailed = true" />
             <div v-else class="absolute inset-0 flex items-center justify-center">
                 <span class="select-none text-[9rem] font-black leading-none text-white/[0.04]">{{ initial }}</span>
@@ -38,7 +38,7 @@
         <div class="relative mt-auto p-4">
             <div class="flex items-end gap-3">
                 <div
-                    class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-slate-900/60 shadow-lg backdrop-blur-md">
+                    class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden">
                     <img v-if="logoSrc && !logoFailed" :src="logoSrc" alt="" class="h-full w-full object-cover" />
                     <span v-else class="text-xl font-black text-emerald-400">{{ initial }}</span>
                 </div>
