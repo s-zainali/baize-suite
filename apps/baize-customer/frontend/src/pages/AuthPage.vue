@@ -294,8 +294,10 @@ import {PasswordField} from '@baize/ui'
 import {PhoneField} from '@baize/ui'
 import { isValidPhone, maskPhone } from '@baize/ui'
 import {PoweredByZain} from '@baize/ui'
-import {TableVisual} from '@baize/ui'
 import * as customerApi from '../api.js'
+import { usePageBackground } from '@baize/ui'
+
+usePageBackground('#020618')
 
 const router = useRouter()
 const clubName = ref('')
