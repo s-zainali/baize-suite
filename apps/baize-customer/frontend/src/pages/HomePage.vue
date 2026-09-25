@@ -622,7 +622,7 @@ const stats = computed(() => [
         accent: 'via-violet-500/60',
     },
     {
-        label: 'Favourite',
+        label: 'Favourite Game',
         value: favourite.value.label,
         hint: favourite.value.hint,
         tone: 'text-amber-400',
