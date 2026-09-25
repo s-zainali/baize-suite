@@ -14,9 +14,9 @@
         <input v-model="props.form[props.field]" :type="showPassword ? 'text' : 'password'" autocomplete="new-password"
             :placeholder="props.placeholder"
             :id="props.id"
-            class="w-full bg-slate-900 rounded-xl border border-slate-800 px-3 py-2.5 text-sm font-bold text-white outline-none focus:border-slate-600 transition-colors placeholder:text-slate-600 placeholder:font-normal" />
+            class="w-full bg-slate-900 rounded-xl border border-slate-800 px-3 py-2.5 text-[16px] font-bold text-white outline-none focus:border-slate-600 transition-colors placeholder:text-slate-600 placeholder:font-normal" />
         <p v-if="error.condition"
-            class='text-rose-400 text-[16px] font-bold'>{{props.error.message}}</p>
+            class='text-rose-400 text-xs font-bold'>{{props.error.message}}</p>
     </div>
 </template>
 
