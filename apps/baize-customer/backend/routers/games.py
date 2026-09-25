@@ -85,9 +85,14 @@ def my_games(limit: int = 50, c: Customer = Depends(current_customer), s: Sessio
               "playedAt": g.played_at.isoformat() if g.played_at else None} for g in rows]
     minutes = sum(g["minutes"] or 0 for g in games)
     fav = Counter(g["tableType"] for g in games if g["tableType"]).most_common(1)
+    top = Counter(g["clubName"] for g in games if g["clubName"]).most_common(1)
     return {"games": games,
-            "summary": {"gamesPlayed": len(games), "minutesPlayed": minutes,
-                        "favourite": fav[0][0] if fav else None}}
+            "summary": {
+                "gamesPlayed": len(games),
+                "minutesPlayed": minutes,
+                "favourite": {"type": fav[0][0], "plays": fav[0][1]} if fav else None,
+                "topClub": {"name": top[0][0], "plays": top[0][1]} if top else None,
+            }}
 
 
 @router.get("/{game_id}/receipt")

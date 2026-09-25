@@ -85,10 +85,9 @@
             <!-- TAB 1: MAIN DASHBOARD VIEW -->
             <main v-if="activeTab === 'dashboard'" class="flex-1 space-y-4">
                 <!-- Summary strip -->
-                <section class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <section class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                     <div v-for="stat in stats" :key="stat.label"
-                        class="group relative overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 shadow-[] p-4 backdrop-blur-xl transition-all duration-300 hover:border-slate-700/80 hover:bg-slate-700/80"
-                        :class="stat.label === 'Owed' ? 'col-span-2 sm:col-span-1' : ''">
+                        class="group relative overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 shadow-[] p-4 backdrop-blur-xl transition-all duration-300 hover:border-slate-700/80 hover:bg-slate-700/80">
                         <span
                             class="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-current to-transparent opacity-70 transition-opacity group-hover:opacity-100"
                             :class="stat.accent" />
@@ -518,9 +517,6 @@ import { customer, signOut, apiGet, apiPost, apiDelete } from '../auth.js'
 import { fetchClubs, cancelBooking } from '../api.js'
 import ClubCard from '@/components/ClubCard.vue'
 import LoggedGame from '@/components/LoggedGame.vue'
-import { usePageBackground } from '@baize/ui'
-
-usePageBackground('#0f172a')
 
 const router = useRouter()
 const route = useRoute()
@@ -597,6 +593,12 @@ const favourite = computed(() => {
     }
 })
 
+const topClub = computed(() => {
+    const t = summary.value.topClub
+    if (!t) return { label: '—', hint: 'no games yet' }
+    return { label: t.name, hint: `${t.plays} ${t.plays === 1 ? 'session' : 'sessions'}` }
+})
+
 const stats = computed(() => [
     {
         label: 'Upcoming',
@@ -626,6 +628,13 @@ const stats = computed(() => [
         tone: 'text-amber-400',
         accent: 'via-amber-500/60',
         color: favourite.value.color,
+    },
+    {
+        label: 'Top Club',
+        value: topClub.value.label,
+        hint: topClub.value.hint,
+        tone: 'text-rose-400',
+        accent: 'via-rose-500/60',
     },
     {
         label: 'Owed',
