@@ -2,17 +2,7 @@
     <div
         class="relative min-h-screen overflow-clip bg-slate-900 text-white selection:bg-emerald-500/30 selection:text-emerald-300">
 
-        <div
-            class="sm:hidden mt-4 sticky top-0 z-100 flex flex-1 flex-col items-center justify-center gap-2 bg-gradient-to-r from-transparent via-slate-800/80 to-transparent  backdrop-blur-md sm:order-2 sm:col-span-1">
-            <div class="h-[1px] w-full rounded-full bg-gradient-to-r from-transparent via-slate-700 to-transparent">
-            </div>
-            <div class="flex items-center gap-4">
-                <img src="/baize_logo.png" class="h-8" alt="">
-                <img src="/baize_logo_text.png" class="h-8 py-1 object-contain" alt="Baize Logo" />
-            </div>
-            <div class="h-[1px] w-full rounded-full bg-gradient-to-r from-transparent via-slate-700 to-transparent">
-            </div>
-        </div>
+        <StickyHeader />
         <div class="relative mx-auto flex min-h-screen flex-col p-4 sm:p-6 lg:p-8">
 
             <!-- Header -->
@@ -518,6 +508,7 @@ import { fetchClubs, cancelBooking } from '../api.js'
 import ClubCard from '@/components/ClubCard.vue'
 import LoggedGame from '@/components/LoggedGame.vue'
 import { usePageBackground } from '@baize/ui'
+import StickyHeader from '@/components/StickyHeader.vue'
 
 usePageBackground('#0f172a')
 

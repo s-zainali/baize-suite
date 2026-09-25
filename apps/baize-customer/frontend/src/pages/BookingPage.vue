@@ -1,176 +1,182 @@
 <template>
     <div class="bg-slate-900 text-slate-100 p-6">
+        <StickyHeader class="-mt-6 mb-6 -mx-6"/>
+        <button v-if="selectedTable && isVisible" @click="scrollToTop" class="sm:hidden fixed bottom-8 right-4 px-6 py-2 bg-emerald-600/90 font-bold text-sm rounded-xl z-100 border border-emerald-900 backdrop-blur-[2px]">
+            CONFIRM
+        </button>
         <!-- Header -->
-        <div class="flex justify-between items-center mb-6">
-            <div class="flex gap-4 items-center">
-                <RouterLink :to="'/dashboard'"
-                    class=" sm:hidden sticky top-0 w-10 h-10 flex items-center rounded-xl active:bg-slate-600 justify-center bg-slate-800">
-                    <svg xmlns="http://w3.org" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="4"
-                        stroke="currentColor" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                    </svg>
-                </RouterLink>
-                <div>
-                    <h1 class="text-2xl font-black text-white tracking-tight">Book a Station</h1>
-                    <p class="text-xs text-slate-500 mt-0.5">Reserve a table or console for a guest.</p>
-                </div>
-            </div>
-            <div class="flex gap-4 justify-center">
-                <RouterLink :to="'/dashboard'"
-                    class="hidden sm:flex text-xs tracking-widest text-slate-100 font-bold bg-slate-800 border border-slate-600 hover:bg-slate-700 transition duration-300 ease-in-out items-center justify-center px-4 rounded-xl">
-                    Back to Home</RouterLink>
-                <CustomerMenu v-if="isSignedIn" />
-            </div>
-        </div>
-
-        <!-- Initial load: club + branch data on the way from the venue -->
-        <div v-if="!firstLoadDone"
-            class="flex flex-col items-center justify-center py-32 rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950/40">
-            <span class="h-10 w-10 mb-4 rounded-full border-2 border-slate-600 border-t-emerald-400 animate-spin"></span>
-            <p class="text-sm font-bold text-slate-300">Loading club…</p>
-        </div>
-
-        <div v-else class="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-4">
-            <!-- LEFT: booking form -->
-            <div
-                class="bg-slate-950/40 border border-slate-700 rounded-2xl p-5 h-fit w-full mx-auto lg:mx-0 lg:sticky lg:top-6">
-                <span class="text-[10px] uppercase font-black tracking-widest text-slate-500 block mb-4">
-                    Reservation Details</span>
-
-                <div class="space-y-4">
-                    <!-- Identity comes from the signed-in account: a guest can't
-                         book under someone else's name, and doesn't retype their own. -->
-                    <div class="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2.5">
-                        <span class="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-500">
-                            Booking as</span>
-                        <p class="truncate text-sm font-bold text-white">{{ customer.profile?.name }}</p>
-                        <p class="truncate font-mono text-[10px] text-slate-500">{{ myPhone }}</p>
-                    </div>
-                    <div class="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2.5">
-                        <span class="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-500">
-                            Club</span>
-                        <div class="flex items-center gap-2">
-                            <div v-if="clubLogo"
-                                class="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-slate-900">
-                                <img :src="clubLogo" alt="" class="h-full w-full object-cover" @error="clubLogo = null" />
-                            </div>
-                            <p class="truncate text-sm font-bold text-white">{{ clubName }}</p>
-                        </div>
-                    </div>
-
-                    <DropdownField :form="form" :field="'branch'" :options="branchOptions" :label="'Branch'"
-                        :placeholder="'Select a branch'" />
-
-                    <div>
-                        <label class="text-[10px] uppercase font-black tracking-widest text-slate-300 block mb-1.5">
-                            Date</label>
-                        <DateField v-model="form.date" :min="todayStr" placeholder="Pick date" />
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="text-[10px] uppercase font-black tracking-widest text-slate-300 block mb-1.5">
-                                Start Time</label>
-                            <TimeField v-model="form.startTime" :min="minStartTime" :max="maxStartTime"
-                                placeholder="Pick time" />
-                        </div>
-                        <div>
-                            <label class="text-[10px] uppercase font-black tracking-widest text-slate-300 block mb-1.5">
-                                End Time</label>
-                            <TimeField v-model="form.endTime" :min="minEndTime" :max="maxEndTime"
-                                placeholder="Pick time" />
-                        </div>
-                    </div>
-
-                    <p v-if="duration" class="text-[10px] font-bold text-slate-400 -mt-1">
-                        Duration <span class="text-white">{{ duration }}</span>
-                        <span class="text-slate-400 font-normal"> · minimum 30 min</span>
-                        <span class="text-slate-400 font-normal"> · Maximum 3 hours</span>
-                    </p>
-
-                    <div class="pt-2 border-t border-slate-700">
-                        <span class="text-[10px] uppercase font-black tracking-widest text-slate-300 block mb-1">
-                            Selected Station</span>
-                        <p v-if="selectedTable" class="text-sm font-black text-emerald-500">
-                            {{ typeLabel(selectedTable.type) }} #{{ selectedTable.id }}
-                        </p>
-                        <p v-else class="text-sm text-slate-400 font-bold">Pick a station on the right →</p>
-                    </div>
-
-                    <p v-if="incompleteBookings"
-                        class="text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 leading-snug">
-                        Some bookings have no end time recorded, so their clashes can't be
-                        checked — those stations are blocked for the whole day as a precaution.
-                        Restarting the backend repairs old rows automatically.
-                    </p>
-
-                    <p v-if="error"
-                        class="text-[10px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl px-3 py-2 uppercase tracking-wide">
-                        {{ error }}</p>
-                    <p v-if="success"
-                        class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2 uppercase tracking-wide">
-                        {{ success }}</p>
-
-                    <button @click="submitBooking" :disabled="!canSubmit || submitting"
-                        class="w-full py-3 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white transition-all cursor-pointer">
-                        {{ submitting ? 'BOOKING…' : 'CONFIRM BOOKING' }}
-                    </button>
-                </div>
-            </div>
-
-            <!-- RIGHT: station grid grouped by lounge -->
-            <div class=" space-y-4">
-                <!-- Loading a branch's stations -->
-                <div v-if="loading"
-                    class="flex flex-col items-center justify-center text-center py-24 rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950/40">
-                    <span class="h-8 w-8 mb-3 rounded-full border-2 border-slate-600 border-t-emerald-400 animate-spin"></span>
-                    <p class="text-sm font-bold text-slate-300">Loading stations…</p>
-                </div>
-                <template v-else>
-                <div v-if="state.branches.length > 1 && !form.branch"
-                    class="flex flex-col items-center justify-center text-center py-24 rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950/40">
-                    <span class="text-3xl mb-3 opacity-40">🏢</span>
-                    <p class="text-sm font-bold text-slate-300">Select a branch to see its stations</p>
-                    <p class="text-xs text-slate-500 mt-1">Choose a location on the left to start a booking.</p>
-                </div>
-                <div v-for="lounge in state.lounges" :key="lounge.uid"
-                    class="bg-slate-950/40 border border-slate-700 rounded-2xl p-4">
-                    <span class="text-sm font-black text-white block mb-3">{{ lounge.name }}</span>
-                    <div class="grid grid-cols-[repeat(auto-fill,minmax(117px,1fr))] gap-2">
-                        <button :disabled="isBooked(t.uid)" v-for="t in loungeTables(lounge.uid)" :key="t.uid"
-                            type="button" @click="selectTable(t)"
-                            :title="isBooked(t.uid) ? `Booked ${clashLabel(t.uid)}` : ''"
-                            class="rounded-xl border p-3 text-left transition-all shrink-0 flex flex-col items-center justify-center h-[245px]"
-                            :class="tileClass(t), isBooked(t.uid) ? 'cursor-default' : 'cursor-pointer'">
-                            <div class="flex h-full items-center">
-                                <TableVisual :table="t" :showBookingStatus="false" :current-rate="t.currentRate"
-                                    :is-display="true" :slot-booked="isBooked(t.uid)" :bookings="state.bookings" />
-                            </div>
-                            <div class="mt-2">
-                                <p v-if="isBooked(t.uid)"
-                                    class="max-w-[90px] text-wrap text-[8px] font-bold text-amber-500 leading-tight whitespace-nowrap text-center z-30 tracking-widest">
-                                    {{ clashLabel(t.uid) }}
-                                </p>
-                                <div v-else-if="t.uid === selectedTable?.uid"
-                                    class="max-w-[90px] text-wrap text-[10px] font-bold text-emerald-100 bg-emerald-600 px-3 rounded-sm -my-1 py-1 leading-tight whitespace-nowrap text-center z-30 uppercase tracking-widest">
-                                    Selected
-                                </div>
-                                <div v-else-if="t.isActive"
-                                    class="max-w-[90px] text-wrap text-[10px] font-bold text-rose-400 leading-tight whitespace-nowrap text-center z-30 uppercase tracking-widest">
-                                    busy now
-                                </div>
-                                <p v-else
-                                    class="max-w-[90px] text-wrap text-[10px] font-bold text-emerald-400 leading-tight whitespace-nowrap text-center z-30 uppercase tracking-widest">
-                                    Available
-                                </p>
-                            </div>
-
-                        </button>
-                    </div>
-                </div>
-                </template>
-            </div>
-        </div>
+         <div>
+             <div class="flex justify-between items-center mb-6">
+                 <div class="flex gap-4 items-center">
+                     <RouterLink :to="'/dashboard'"
+                         class=" sm:hidden sticky top-0 w-10 h-10 flex items-center rounded-xl active:bg-slate-600 justify-center bg-slate-800">
+                         <svg xmlns="http://w3.org" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="4"
+                             stroke="currentColor" aria-hidden="true">
+                             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                         </svg>
+                     </RouterLink>
+                     <div>
+                         <h1 class="text-2xl font-black text-white tracking-tight">Book a Station</h1>
+                         <p class="text-xs text-slate-500 mt-0.5">Reserve a table or console for a guest.</p>
+                     </div>
+                 </div>
+                 <div class="flex gap-4 justify-center">
+                     <RouterLink :to="'/dashboard'"
+                         class="hidden sm:flex text-xs tracking-widest text-slate-100 font-bold bg-slate-800 border border-slate-600 hover:bg-slate-700 transition duration-300 ease-in-out items-center justify-center px-4 rounded-xl">
+                         Back to Home</RouterLink>
+                     <CustomerMenu v-if="isSignedIn" />
+                 </div>
+             </div>
+     
+             <!-- Initial load: club + branch data on the way from the venue -->
+             <div v-if="!firstLoadDone"
+                 class="flex flex-col items-center justify-center py-32 rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950/40">
+                 <span class="h-10 w-10 mb-4 rounded-full border-2 border-slate-600 border-t-emerald-400 animate-spin"></span>
+                 <p class="text-sm font-bold text-slate-300">Loading club…</p>
+             </div>
+     
+             <div v-else class="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-4">
+                 <!-- LEFT: booking form -->
+                 <div
+                     class="bg-slate-950/40 border border-slate-700 rounded-2xl p-5 h-fit w-full mx-auto lg:mx-0 lg:sticky lg:top-6">
+                     <span class="text-[10px] uppercase font-black tracking-widest text-slate-500 block mb-4">
+                         Reservation Details</span>
+     
+                     <div class="space-y-4">
+                         <!-- Identity comes from the signed-in account: a guest can't
+                              book under someone else's name, and doesn't retype their own. -->
+                         <div class="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2.5">
+                             <span class="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                 Booking as</span>
+                             <p class="truncate text-sm font-bold text-white">{{ customer.profile?.name }}</p>
+                             <p class="truncate font-mono text-[10px] text-slate-500">{{ myPhone }}</p>
+                         </div>
+                         <div class="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2.5">
+                             <span class="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                 Club</span>
+                             <div class="flex items-center gap-2">
+                                 <div v-if="clubLogo"
+                                     class="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-slate-900">
+                                     <img :src="clubLogo" alt="" class="h-full w-full object-cover" @error="clubLogo = null" />
+                                 </div>
+                                 <p class="truncate text-sm font-bold text-white">{{ clubName }}</p>
+                             </div>
+                         </div>
+     
+                         <DropdownField :form="form" :field="'branch'" :options="branchOptions" :label="'Branch'"
+                             :placeholder="'Select a branch'" />
+     
+                         <div>
+                             <label class="text-[10px] uppercase font-black tracking-widest text-slate-300 block mb-1.5">
+                                 Date</label>
+                             <DateField v-model="form.date" :min="todayStr" placeholder="Pick date" />
+                         </div>
+     
+                         <div class="grid grid-cols-2 gap-3">
+                             <div>
+                                 <label class="text-[10px] uppercase font-black tracking-widest text-slate-300 block mb-1.5">
+                                     Start Time</label>
+                                 <TimeField v-model="form.startTime" :min="minStartTime" :max="maxStartTime"
+                                     placeholder="Pick time" />
+                             </div>
+                             <div>
+                                 <label class="text-[10px] uppercase font-black tracking-widest text-slate-300 block mb-1.5">
+                                     End Time</label>
+                                 <TimeField v-model="form.endTime" :min="minEndTime" :max="maxEndTime"
+                                     placeholder="Pick time" />
+                             </div>
+                         </div>
+     
+                         <p v-if="duration" class="text-[10px] font-bold text-slate-400 -mt-1">
+                             Duration <span class="text-white">{{ duration }}</span>
+                             <span class="text-slate-400 font-normal"> · minimum 30 min</span>
+                             <span class="text-slate-400 font-normal"> · Maximum 3 hours</span>
+                         </p>
+     
+                         <div class="pt-2 border-t border-slate-700">
+                             <span class="text-[10px] uppercase font-black tracking-widest text-slate-300 block mb-1">
+                                 Selected Station</span>
+                             <p v-if="selectedTable" class="text-sm font-black text-emerald-500">
+                                 {{ typeLabel(selectedTable.type) }} #{{ selectedTable.id }}
+                             </p>
+                             <p v-else class="text-sm text-slate-400 font-bold">Pick a station on the right →</p>
+                         </div>
+     
+                         <p v-if="incompleteBookings"
+                             class="text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 leading-snug">
+                             Some bookings have no end time recorded, so their clashes can't be
+                             checked — those stations are blocked for the whole day as a precaution.
+                             Restarting the backend repairs old rows automatically.
+                         </p>
+     
+                         <p v-if="error"
+                             class="text-[10px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl px-3 py-2 uppercase tracking-wide">
+                             {{ error }}</p>
+                         <p v-if="success"
+                             class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2 uppercase tracking-wide">
+                             {{ success }}</p>
+     
+                         <button @click="submitBooking" :disabled="!canSubmit || submitting"
+                             class="w-full py-3 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white transition-all cursor-pointer">
+                             {{ submitting ? 'BOOKING…' : 'CONFIRM BOOKING' }}
+                         </button>
+                     </div>
+                 </div>
+     
+                 <!-- RIGHT: station grid grouped by lounge -->
+                 <div class=" space-y-4">
+                     <!-- Loading a branch's stations -->
+                     <div v-if="loading"
+                         class="flex flex-col items-center justify-center text-center py-24 rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950/40">
+                         <span class="h-8 w-8 mb-3 rounded-full border-2 border-slate-600 border-t-emerald-400 animate-spin"></span>
+                         <p class="text-sm font-bold text-slate-300">Loading stations…</p>
+                     </div>
+                     <template v-else>
+                     <div v-if="state.branches.length > 1 && !form.branch"
+                         class="flex flex-col items-center justify-center text-center py-24 rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950/40">
+                         <span class="text-3xl mb-3 opacity-40">🏢</span>
+                         <p class="text-sm font-bold text-slate-300">Select a branch to see its stations</p>
+                         <p class="text-xs text-slate-500 mt-1">Choose a location on the left to start a booking.</p>
+                     </div>
+                     <div v-for="lounge in state.lounges" :key="lounge.uid"
+                         class="bg-slate-950/40 border border-slate-700 rounded-2xl p-4">
+                         <span class="text-sm font-black text-white block mb-3">{{ lounge.name }}</span>
+                         <div class="grid grid-cols-[repeat(auto-fill,minmax(117px,1fr))] gap-2">
+                             <button :disabled="isBooked(t.uid)" v-for="t in loungeTables(lounge.uid)" :key="t.uid"
+                                 type="button" @click="selectTable(t)"
+                                 :title="isBooked(t.uid) ? `Booked ${clashLabel(t.uid)}` : ''"
+                                 class="rounded-xl border p-3 text-left transition-all shrink-0 flex flex-col items-center justify-center h-[245px]"
+                                 :class="tileClass(t), isBooked(t.uid) ? 'cursor-default' : 'cursor-pointer'">
+                                 <div class="flex h-full items-center">
+                                     <TableVisual :table="t" :showBookingStatus="false" :current-rate="t.currentRate"
+                                         :is-display="true" :slot-booked="isBooked(t.uid)" :bookings="state.bookings" />
+                                 </div>
+                                 <div class="mt-2">
+                                     <p v-if="isBooked(t.uid)"
+                                         class="max-w-[90px] text-wrap text-[8px] font-bold text-amber-500 leading-tight whitespace-nowrap text-center z-30 tracking-widest">
+                                         {{ clashLabel(t.uid) }}
+                                     </p>
+                                     <div v-else-if="t.uid === selectedTable?.uid"
+                                         class="max-w-[90px] text-wrap text-[10px] font-bold text-emerald-100 bg-emerald-600 px-3 rounded-sm -my-1 py-1 leading-tight whitespace-nowrap text-center z-30 uppercase tracking-widest">
+                                         Selected
+                                     </div>
+                                     <div v-else-if="t.isActive"
+                                         class="max-w-[90px] text-wrap text-[10px] font-bold text-rose-400 leading-tight whitespace-nowrap text-center z-30 uppercase tracking-widest">
+                                         busy now
+                                     </div>
+                                     <p v-else
+                                         class="max-w-[90px] text-wrap text-[10px] font-bold text-emerald-400 leading-tight whitespace-nowrap text-center z-30 uppercase tracking-widest">
+                                         Available
+                                     </p>
+                                 </div>
+     
+                             </button>
+                         </div>
+                     </div>
+                     </template>
+                 </div>
+             </div>
+         </div>
         <PoweredByZain :for-customer="true" />
 
         <BookingConfirmModal v-if="confirmed" v-bind="confirmed" @close="confirmed = null; router.push('/dashboard')" />
@@ -198,6 +204,7 @@ import { PoweredByZain } from '@baize/ui'
 import BookingConfirmModal from '../components/BookingConfirmModal.vue'
 import { TableVisual } from '@baize/ui'
 import { fetchAvailability } from '@/api.js'
+import StickyHeader from '@/components/StickyHeader.vue'
 
 usePageBackground('#0f172a')
 const router = useRouter()
@@ -244,6 +251,30 @@ const minEndTime = computed(() => earliestEnd(form.startTime) || '')
 const maxEndTime = computed(() => latestEnd(form.endTime) || '')
 const duration = computed(() => formatDuration(form.startTime, form.endTime))
 const rangeError = computed(() => validateRange(form.date, form.startTime, form.endTime, clock.value))
+
+const isVisible = ref(false);
+
+const checkScroll = () => {
+  // Show button if user scrolls down more than 100 pixels
+  isVisible.value = window.scrollY > window.innerHeight * (3/4);
+};
+
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+};
+
+// Add event listener when component mounts
+onMounted(() => {
+  window.addEventListener('scroll', checkScroll);
+});
+
+// Clean up event listener when component unmounts to prevent memory leaks
+onUnmounted(() => {
+  window.removeEventListener('scroll', checkScroll);
+})
 
 // Keep the pair coherent: pull the start forward if it has fallen into the past,
 // and push the end out whenever less than the minimum is left between them.
