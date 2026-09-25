@@ -22,7 +22,7 @@
             <input :id="id" ref="input" :value="display" type="tel" inputmode="numeric" autocomplete="tel-national"
                 placeholder="300 1234567" :aria-invalid="showError" @input="onInput" @focus="focused = true"
                 @blur="focused = false"
-                class="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2.5 font-mono text-sm font-bold tracking-wide text-white outline-none transition-colors placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-600 focus:border-slate-600" />
+                class="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2.5 font-mono text-[16px] font-bold tracking-wide text-white outline-none transition-colors placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-600 focus:border-slate-600" />
         </div>
 
         <p v-if="showError" class="mt-2 px-0.5 text-[10px] font-bold text-rose-400">{{ error }}</p>

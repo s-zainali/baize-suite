@@ -1,6 +1,6 @@
 <template>
     <div class="bg-slate-900 text-slate-100 p-6">
-        <div v-if="selectedTable" class="sm:hidden fixed right-4 bottom-4 z-400">
+        <div v-if="selectedTable" class="block sm:hidden fixed right-4 bottom-4 z-400">
             <button @click="scrollToTop()" class="bg-emerald-600 px-4 py-2 rounded-lg text-xs font-black shadow-lg shadow-slate-950">CONFIRM</button>
         </div>
         <!-- Header -->
