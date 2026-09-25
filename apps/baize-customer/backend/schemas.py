@@ -21,6 +21,7 @@ class BookingIn(BaseModel):
 
 class ClubOut(BaseModel):
     uid: str
+    logoUrl: Optional[str] = None
     name: str
     city: Optional[str] = None
     branches: int = 0

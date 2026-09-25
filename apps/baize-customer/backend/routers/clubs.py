@@ -26,7 +26,7 @@ def optional_customer(authorization: str = Header(None), db: Session = Depends(g
         return None
 
 
-@router.get("", response_model=List[ClubOut])
+@router.get("")   # no response_model — return list_clubs as-is (keeps logoUrl etc.)
 def list_clubs(
     query: Optional[str] = Query(None, alias="query"),
     near: Optional[str] = Query(None, alias="near"),

@@ -807,5 +807,5 @@ async function fetchState() {
     }
 }
 
-useAutoRefresh(fetchState, 15000)
+useAutoRefresh(fetchState, 45000)
 </script>

@@ -9,7 +9,6 @@ from standalone to the central network is a one-line config change.
 from __future__ import annotations
 import datetime as dt
 import uuid
-import config
 from cdn import cdn_logo_url
 from abc import ABC, abstractmethod
 from typing import Optional
@@ -111,7 +110,9 @@ class LocalCentral(Central):
 
         public_url = getattr(club, "public_url", None)
         if public_url:
-            return self._fetch_remote_availability(club.club_name, public_url, date, branch_uid)
+            data = self._fetch_remote_availability(club.club_name, public_url, date, branch_uid)
+            data["logoUrl"] = cdn_logo_url(target_club_uid)
+            return data
 
         # Standalone / Local DB fallback
         start = dt.datetime.combine(date, dt.time.min)
@@ -127,6 +128,7 @@ class LocalCentral(Central):
 
         return {
             "club" : club.club_name,
+            "logoUrl": cdn_logo_url(target_club_uid),
             "date": date.isoformat(),
             "branches": [],
             "selectedBranch": branch_uid,
@@ -156,7 +158,7 @@ class LocalCentral(Central):
 
         headers = bridge.sign("GET", "/api/customer/availability")
         try:
-            with httpx.Client(timeout=5.0) as client:
+            with httpx.Client(timeout=2.5) as client:
                 res = client.get(url, params=params, headers=headers)
                 if res.status_code != 200:
                     raise HTTPException(status_code=res.status_code, detail=f"Club node error: {res.text}")
@@ -258,7 +260,7 @@ class LocalCentral(Central):
         headers = {**bridge.sign("POST", "/api/customer/bookings", body),
                    "Content-Type": "application/json"}
         try:
-            with httpx.Client(timeout=5.0) as client:
+            with httpx.Client(timeout=2.5) as client:
                 res = client.post(target_url, content=body, headers=headers)
 
                 if res.status_code not in (200, 201):
@@ -330,7 +332,7 @@ class LocalCentral(Central):
         target_url = f"{club.public_url.rstrip('/')}/api/customer/bookings/{b.sync_id}"
         headers = bridge.sign("DELETE", f"/api/customer/bookings/{b.sync_id}")
         try:
-            with httpx.Client(timeout=5.0) as client:
+            with httpx.Client(timeout=2.5) as client:
                 res = client.delete(target_url, headers=headers)
 
                 if res.status_code not in (200, 201):

@@ -16,7 +16,7 @@
           </div>
           <div class="mt-3 flex items-center gap-3">
             <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-slate-900">
-              <img v-if="club.logoUrl && !logoFailed" :src="club.logoUrl" alt="" class="h-full w-full object-cover" @error="logoFailed = true" />
+              <img v-if="logoSrc && !logoFailed" :src="logoSrc" alt="" class="h-full w-full object-cover" @error="logoFailed = true" />
               <span v-else class="text-base font-black text-emerald-400">{{ (club.name || 'C').charAt(0).toUpperCase() }}</span>
             </div>
             <div class="min-w-0">
@@ -42,8 +42,9 @@
       </div>
     </template>
     <script setup>
-    import { ref } from 'vue'
+    import { ref, computed } from 'vue'
     const props = defineProps({club : {type: Object}})
     const logoFailed = ref(false)
     const emit = defineEmits(['select-club'])
+    const logoSrc = computed(() => props.club?.logoUrl || null)
     </script>

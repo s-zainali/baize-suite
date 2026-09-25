@@ -33,7 +33,7 @@
         <div v-else class="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-4">
             <!-- LEFT: booking form -->
             <div
-                class="bg-slate-800 border border-slate-700 rounded-2xl p-5 h-fit w-full mx-auto lg:mx-0 lg:sticky lg:top-6">
+                class="bg-slate-950/40 border border-slate-700 rounded-2xl p-5 h-fit w-full mx-auto lg:mx-0 lg:sticky lg:top-6">
                 <span class="text-[10px] uppercase font-black tracking-widest text-slate-500 block mb-4">
                     Reservation Details</span>
 
@@ -49,7 +49,13 @@
                     <div class="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2.5">
                         <span class="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-500">
                             Club</span>
-                        <p class="truncate text-sm font-bold text-white">{{ clubName }}</p>
+                        <div class="flex items-center gap-2">
+                            <div v-if="clubLogo"
+                                class="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-slate-900">
+                                <img :src="clubLogo" alt="" class="h-full w-full object-cover" @error="clubLogo = null" />
+                            </div>
+                            <p class="truncate text-sm font-bold text-white">{{ clubName }}</p>
+                        </div>
                     </div>
 
                     <DropdownField :form="form" :field="'branch'" :options="branchOptions" :label="'Branch'"
@@ -198,6 +204,7 @@ const router = useRouter()
 const route = useRoute()
 const clubUid = computed(() => route.query.clubId || '')
 const clubName = ref('')
+const clubLogo = ref(null)
 const myPhone = computed(() => formatPhoneDisplay(customer.profile?.phone || ''))
 
 const state = ref({ tables: [], lounges: [], bookings: [], branches: [] })
@@ -265,6 +272,7 @@ async function fetchState(showLoading = false) {
         if (!form.branch && data.selectedBranch) form.branch = data.selectedBranch
 
         clubName.value = data.club
+        clubLogo.value = data.logoUrl || null
         
         state.value = {
             tables: data.tables || [],
@@ -299,7 +307,7 @@ watch(() => form.branch, () => { selectedTable.value = null; fetchState(true) })
 
 onMounted(() => {
     fetchState(true)                                  // initial load — show the loader
-    poll = setInterval(() => fetchState(false), 10000)  // silent background refresh
+    poll = setInterval(() => fetchState(false), 20000)  // silent background refresh
     tick = setInterval(() => { clock.value = new Date(); reconcileTimes() }, 30000)
 })
 onUnmounted(() => { clearInterval(poll); clearInterval(tick) })
