@@ -53,7 +53,7 @@
 
             <!-- View Switcher Tabs (Mobile & Quick Toggle) -->
             <nav class="mb-4 grid grid-cols-1 sm:flex gap-2 border-b border-slate-800/80 pb-3">
-                <button @click="activeTab = 'dashboard'"
+                <button @click="setTab('dashboard')"
                     :class="activeTab === 'dashboard' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-800 text-slate-400 border-slate-700/60 hover:text-slate-200'"
                     class="flex items-center gap-2 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer">
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -62,7 +62,7 @@
                     </svg>
                     Dashboard
                 </button>
-                <button @click="activeTab = 'clubs'"
+                <button @click="setTab('clubs')"
                     :class="activeTab === 'clubs' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-800 text-slate-400 border-slate-700/60 hover:text-slate-200'"
                     class="flex items-center gap-2 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer">
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -71,7 +71,7 @@
                     </svg>
                     Explore Clubs
                 </button>
-                <button @click="activeTab = 'friends'"
+                <button @click="setTab('friends')"
                     :class="activeTab === 'friends' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-800 text-slate-400 border-slate-700/60 hover:text-slate-200'"
                     class="flex items-center gap-2 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer">
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -137,7 +137,7 @@
                                 :for-customer="true" :booking="booking" @cancel="cancelBookingAction(booking.id)" />
                         </div>
 
-                        <button @click="activeTab = 'clubs'"
+                        <button @click="setTab('clubs')"
                             class="mt-5 flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-emerald-950/50 transition-all hover:bg-emerald-500 active:scale-[0.99] cursor-pointer">
                             Book a Table
                             <span class="text-sm leading-none">&rsaquo;</span>
@@ -324,7 +324,7 @@
 
                     <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <ClubCard v-for="club in allClubs" :key="club.id" :club="club"
-                            @select-club="selectClub(club)" />
+                            @select-club="selectClub(club)" @toggle-favourite="toggleFavourite(club)" />
                     </div>
                 </section>
             </main>
@@ -512,21 +512,20 @@
 
 <script setup>
 import { computed, ref, watch, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { typeLabel, typeColor, formatPhoneDisplay, qrMatrix, qrSvgPath, BookingItem, PoweredByZain, BillingReceipt, useAutoRefresh } from '@baize/ui'
 import { customer, signOut, apiGet, apiPost, apiDelete } from '../auth.js'
 import { fetchClubs, cancelBooking } from '../api.js'
 import ClubCard from '@/components/ClubCard.vue'
 import LoggedGame from '@/components/LoggedGame.vue'
-import { usePageBackground } from '@baize/ui'
-
-
-usePageBackground('#0f172a')
 
 const router = useRouter()
+const route = useRoute()
+// tab is derived from the URL so /dashboard, /clubs, /friends are real routes
+const setTab = (t) => { if (route.path !== '/' + t) router.push('/' + t) }
 
 // Navigation tab state
-const activeTab = ref('dashboard') // 'dashboard' | 'clubs'
+const activeTab = computed(() => route.path === '/clubs' ? 'clubs' : route.path === '/friends' ? 'friends' : 'dashboard')
 
 // Customer Profile computed
 const fullName = computed(() => (customer.profile?.name || 'Guest').trim())
@@ -692,7 +691,17 @@ async function declineRequest(req) {
 async function removeFriend(person) {
     try { await apiDelete(`/friends/${person.id}`); friends.value = friends.value.filter(f => f.id !== person.id) } catch { }
 }
-function inviteFriend(friend) { activeTab.value = 'clubs' }
+async function toggleFavourite(club) {
+    const next = !club.isFavourite
+    club.isFavourite = next                       // optimistic
+    try {
+        if (next) await apiPost(`/clubs/${club.id}/favourite`, {}, { auth: true })
+        else await apiDelete(`/clubs/${club.id}/favourite`)
+    } catch (_) {
+        club.isFavourite = !next                   // revert on failure
+    }
+}
+function inviteFriend(friend) { setTab('clubs') }
 function addFriend(suggested) {
     sendRequest(suggested)
     suggestedFriends.value = suggestedFriends.value.filter(x => x.id !== suggested.id)

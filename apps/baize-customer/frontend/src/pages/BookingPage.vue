@@ -1,12 +1,9 @@
 <template>
     <div class="bg-slate-900 text-slate-100 p-6">
-        <div v-if="selectedTable" class="block sm:hidden fixed right-4 bottom-4 z-400">
-            <button @click="scrollToTop()" class="bg-emerald-600 px-4 py-2 rounded-lg text-xs font-black shadow-lg shadow-slate-950">CONFIRM</button>
-        </div>
         <!-- Header -->
         <div class="flex justify-between items-center mb-6">
             <div class="flex gap-4 items-center">
-                <RouterLink :to="'/home'"
+                <RouterLink :to="'/dashboard'"
                     class=" sm:hidden sticky top-0 w-10 h-10 flex items-center rounded-xl active:bg-slate-600 justify-center bg-slate-800">
                     <svg xmlns="http://w3.org" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="4"
                         stroke="currentColor" aria-hidden="true">
@@ -19,7 +16,7 @@
                 </div>
             </div>
             <div class="flex gap-4 justify-center">
-                <RouterLink :to="'/home'"
+                <RouterLink :to="'/dashboard'"
                     class="hidden sm:flex text-xs tracking-widest text-slate-100 font-bold bg-slate-800 border border-slate-600 hover:bg-slate-700 transition duration-300 ease-in-out items-center justify-center px-4 rounded-xl">
                     Back to Home</RouterLink>
                 <CustomerMenu v-if="isSignedIn" />
@@ -176,7 +173,7 @@
         </div>
         <PoweredByZain :for-customer="true" />
 
-        <BookingConfirmModal v-if="confirmed" v-bind="confirmed" @close="confirmed = null; router.push('/home')" />
+        <BookingConfirmModal v-if="confirmed" v-bind="confirmed" @close="confirmed = null; router.push('/dashboard')" />
     </div>
 </template>
 
@@ -221,7 +218,7 @@ const submitting = ref(false)
 const error = ref('')
 const success = ref('')
 // Set to the booking details after a successful booking; drives the confirm
-// modal. Redirect to /home happens only when the guest closes it.
+// modal. Redirect to /dashboard happens only when the guest closes it.
 const confirmed = ref(null)
 
 
@@ -401,13 +398,6 @@ function tileClass(t) {
 const canSubmit = computed(() =>
     !!form.date && !!selectedTable.value && !rangeError.value
 )
-
-const scrollToTop = () => {
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth'
-  });
-};
 
 async function submitBooking() {
     if (submitting.value) return

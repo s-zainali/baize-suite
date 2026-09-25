@@ -1,5 +1,5 @@
 <template>
-    <div class="relative min-h-screen overflow-hidden bg-slate-950 text-white pb-6 flex flex-col justify-between">
+    <div class="relative min-h-screen overflow-hidden bg-slate-950 text-white pb-6">
 
         <!-- ── ambient background ─────────────────────────────────────────
              Felt green and chalk blue, at very low opacity. It should read as
@@ -18,13 +18,14 @@
                  encloses every ball rather than cutting through them. -->
             <svg class="absolute -right-20 -top-12 h-80 w-80 rotate-[14deg]" viewBox="0 0 200 145" fill="none">
                 <g opacity="0.5">
-                    <circle v-for="ball in rack" :key="ball.n" :cx="ball.x" :cy="ball.y" r="11" :fill="ball.color" />
+                    <circle v-for="ball in rack" :key="ball.n" :cx="ball.x" :cy="ball.y" r="11"
+                        :fill="ball.color" />
                     <!-- Stripes get a white band across the middle -->
                     <path v-for="ball in stripedRack" :key="`s${ball.n}`"
                         :d="`M${ball.x - 11} ${ball.y} a11 11 0 0 1 22 0 Z`" fill="#f8fafc" opacity="0.85"
                         :transform="`rotate(90 ${ball.x} ${ball.y})`" />
-                    <circle v-for="ball in rack" :key="`o${ball.n}`" :cx="ball.x" :cy="ball.y" r="11" fill="none"
-                        stroke="#0f172a" stroke-opacity="0.5" stroke-width="0.8" />
+                    <circle v-for="ball in rack" :key="`o${ball.n}`" :cx="ball.x" :cy="ball.y" r="11"
+                        fill="none" stroke="#0f172a" stroke-opacity="0.5" stroke-width="0.8" />
                 </g>
                 <!-- Wooden rack frame -->
                 <path d="M100 2 L174.7 131.4 L25.3 131.4 Z" fill="none" stroke="#a16207" stroke-opacity="0.75"
@@ -77,32 +78,29 @@
             <div class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-slate-950/80 to-transparent" />
         </div>
 
-        <!-- Branding -->
-        <div class=" text-center pt-8 px-8">
-            <div class="flex items-center justify-start sm:justify-center sm:flex-col gap-2">
-                <img src="/baize_logo.png" class="h-10 sm:h-20" alt="">
-                <img src="/baize_logo_text.png" class="w-25" alt="">
-            </div>
-            <p class="mt-1 text-xs text-slate-500">{{ subtitle }}</p>
-        </div>
         <!-- ── content ───────────────────────────────────────────────────── -->
-        <div class="relative flex items-center justify-center p-4 mt-8 sm:mt-0">
-
+        <div class="relative flex min-h-screen items-center justify-center p-4 py-8">
             <div class="w-full max-w-[380px]">
+
+                <!-- Brand -->
+                <div class="mb-7 text-center">
+                    <div class="flex items-center justify-center flex-col gap-2">
+                        <img src="/baize_logo.png" class="h-20" alt="">
+                        <img src="/baize_logo_text.png" class="w-25" alt="">
+                    </div>
+                    <p class="mt-1 text-xs text-slate-500">{{ subtitle }}</p>
+                </div>
 
                 <!-- Card. Fixed max height with an internal scroll region, so a
                      long form never pushes the action button off screen. -->
-                <div
-                    class="relative rounded-3xl border border-slate-800 bg-slate-900/80 shadow-2xl shadow-emerald-950/20 backdrop-blur-xl">
-                    <div
-                        class="pointer-events-none absolute inset-x-8 -top-px h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
+                <div class="relative rounded-3xl border border-slate-800 bg-slate-900/80 shadow-2xl shadow-emerald-950/20 backdrop-blur-xl">
+                    <div class="pointer-events-none absolute inset-x-8 -top-px h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
 
                     <!-- ── pinned head ── -->
                     <div class="px-6 pt-6">
                         <div v-if="isEntryMode"
                             class="flex gap-1 rounded-2xl border border-slate-800 bg-slate-950/60 p-1">
-                            <button v-for="tab in ['signin', 'signup']" :key="tab" type="button"
-                                @click="switchMode(tab)"
+                            <button v-for="tab in ['signin', 'signup']" :key="tab" type="button" @click="switchMode(tab)"
                                 class="flex-1 cursor-pointer rounded-xl py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-200"
                                 :class="mode === tab
                                     ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40'
@@ -114,8 +112,7 @@
                         <div v-else-if="mode !== 'done'">
                             <button type="button" @click="switchMode(previousStep)"
                                 class="group flex cursor-pointer items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-500 transition-colors hover:text-slate-300">
-                                <span
-                                    class="text-sm leading-none transition-transform group-hover:-translate-x-0.5">‹</span>
+                                <span class="text-sm leading-none transition-transform group-hover:-translate-x-0.5">‹</span>
                                 Back
                             </button>
                             <h2 class="mt-4 text-lg font-black">{{ stepTitle }}</h2>
@@ -139,7 +136,8 @@
                         <div class="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8 bg-gradient-to-t from-slate-900 to-transparent transition-opacity duration-200"
                             :class="atBottom ? 'opacity-0' : 'opacity-100'" />
 
-                        <div ref="scroller" @scroll.passive="updateScrollEdges" class="max-h-[46vh] min-h-[180px] overflow-y-auto overscroll-contain px-6 py-5
+                        <div ref="scroller" @scroll.passive="updateScrollEdges"
+                            class="max-h-[46vh] min-h-[180px] overflow-y-auto overscroll-contain px-6 py-5
                                    [scrollbar-color:theme(colors.slate.700)_transparent] [scrollbar-width:thin]
                                    [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-700/70
                                    [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5">
@@ -149,8 +147,8 @@
 
                                     <!-- ─── SIGN IN ─── -->
                                     <template v-if="mode === 'signin'">
-                                        <PhoneField v-model="form.phone" id="cust-signin-phone" :error="errors.phone"
-                                            :touched="touched.phone" />
+                                        <PhoneField v-model="form.phone" id="cust-signin-phone"
+                                            :error="errors.phone" :touched="touched.phone" />
                                         <PasswordField :form="form" field="password" label="Password"
                                             id="cust-signin-password" placeholder="••••••••"
                                             :error="{ condition: false, message: '' }" @keyup.enter="submitSignIn" />
@@ -181,7 +179,7 @@
                                         <div>
                                             <TextField :form="form" field="name" label="Full Name" id="cust-name"
                                                 placeholder="Your name" type="text" />
-                                            <FieldError :message="touched.name ? errors.name : ''" />
+                                                <FieldError :message="touched.name ? errors.name : ''" />
                                         </div>
 
                                         <div>
@@ -243,15 +241,13 @@
                                     <template v-else-if="mode === 'done'">
                                         <div class="space-y-4 py-6 text-center">
                                             <div class="relative mx-auto flex h-14 w-14 items-center justify-center">
-                                                <span
-                                                    class="absolute -inset-2 rounded-full border border-emerald-500/20" />
+                                                <span class="absolute -inset-2 rounded-full border border-emerald-500/20" />
                                                 <span
                                                     class="relative flex h-14 w-14 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/15 text-xl text-emerald-400">✓</span>
                                             </div>
                                             <div>
                                                 <h2 class="text-lg font-black">{{ doneTitle }}</h2>
-                                                <p
-                                                    class="mx-auto mt-1.5 max-w-[16rem] text-[11px] leading-snug text-slate-500">
+                                                <p class="mx-auto mt-1.5 max-w-[16rem] text-[11px] leading-snug text-slate-500">
                                                     {{ doneMessage }}
                                                 </p>
                                             </div>
@@ -286,22 +282,20 @@
                 </p>
             </div>
         </div>
-        <PoweredByZain :for-customer="true" />
+        <PoweredByZain :for-customer="true"/>
     </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch, nextTick, onMounted, onUnmounted, h } from 'vue'
 import { useRouter } from 'vue-router'
-import { TextField } from '@baize/ui'
-import { PasswordField } from '@baize/ui'
-import { usePageBackground } from '@baize/ui'
-import { PhoneField } from '@baize/ui'
+import {TextField} from '@baize/ui'
+import {PasswordField} from '@baize/ui'
+import {PhoneField} from '@baize/ui'
 import { isValidPhone, maskPhone } from '@baize/ui'
-import { PoweredByZain } from '@baize/ui'
+import {PoweredByZain} from '@baize/ui'
+import {TableVisual} from '@baize/ui'
 import * as customerApi from '../api.js'
-
-usePageBackground('#020618')
 
 const router = useRouter()
 const clubName = ref('')
@@ -593,7 +587,7 @@ function submitSignIn() {
     }
     run(async () => {
         await customerApi.signIn({ phone: form.phone, password: form.password })
-        router.push('/home')
+        router.push('/dashboard')
     })
 }
 
@@ -604,7 +598,7 @@ function submitSignUp() {
         await customerApi.signUp({
             name: form.name, phone: form.phone, email: form.email, password: form.password,
         })
-        router.push('/home')
+        router.push('/dashboard')
     })
 }
 
@@ -673,41 +667,22 @@ function submitReset() {
     transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
-.slide-fwd-enter-from {
-    opacity: 0;
-    transform: translateX(12px);
-}
-
-.slide-fwd-leave-to {
-    opacity: 0;
-    transform: translateX(-12px);
-}
-
-.slide-back-enter-from {
-    opacity: 0;
-    transform: translateX(-12px);
-}
-
-.slide-back-leave-to {
-    opacity: 0;
-    transform: translateX(12px);
-}
+.slide-fwd-enter-from { opacity: 0; transform: translateX(12px); }
+.slide-fwd-leave-to   { opacity: 0; transform: translateX(-12px); }
+.slide-back-enter-from { opacity: 0; transform: translateX(-12px); }
+.slide-back-leave-to   { opacity: 0; transform: translateX(12px); }
 
 /* Motion here is decorative; anyone who has asked for less shouldn't get it. */
 @media (prefers-reduced-motion: reduce) {
-
     .slide-fwd-enter-active,
     .slide-fwd-leave-active,
     .slide-back-enter-active,
     .slide-back-leave-active {
         transition: opacity 0.12s ease;
     }
-
     .slide-fwd-enter-from,
     .slide-fwd-leave-to,
     .slide-back-enter-from,
-    .slide-back-leave-to {
-        transform: none;
-    }
+    .slide-back-leave-to { transform: none; }
 }
 </style>
