@@ -1,7 +1,11 @@
 <template>
-    <div class="absolute bg-slate-950 flex items-center justify-center p-4 h-full w-full">
+    <div class="flex min-h-full w-full items-center justify-center overflow-y-auto bg-slate-950 p-4">
         <div class="w-full max-w-[75vw] sm:max-w-sm">
             <div class="text-center mb-8">
+                <div class="mb-4 flex flex-col items-center gap-2">
+                    <img src="/baize_logo.png" alt="" class="h-16 w-16 object-contain drop-shadow-lg" />
+                    <img src="/baize_logo_text.png" alt="Baize" class="h-6 w-auto object-contain opacity-90" />
+                </div>
                 <h1 class="text-2xl font-black text-white tracking-tight">Baize</h1>
                 <p class="text-xs text-slate-500 mt-1">Sign in to start your shift</p>
             </div>

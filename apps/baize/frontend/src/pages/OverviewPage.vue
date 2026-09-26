@@ -27,8 +27,11 @@
              bottom via justify-between + min-h) so numbers line up across the row.
              Grid tiles evenly at each width: 2-up mobile, 2×4 at md, one row at xl. -->
         
-        <div>
-            <BranchPicker :is-overview="true" :class="'mb-4 -mx-3'" />
+        <div class="flex gap-4 mb-4">
+            <BranchPicker :is-overview="true" :class="'flex-1'" />
+            <RouterLink :to="'/dashboard'" class="flex-1 rounded-xl border border-neutral-800 text-center uppercase text-sm tracking widest hover:bg-neutral-800 transtion duration-300 ease-in-out font-bold tracking-widest bg-neutral-900 p-4">
+                Dashboard
+            </RouterLink>
         </div>
 
         <!-- All-branches board: the owner's comprehensive cross-branch pulse -->

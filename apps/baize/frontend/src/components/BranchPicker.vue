@@ -1,5 +1,5 @@
 <template>
-    <div v-if="true" class="px-3 pt-3">
+    <div v-if="true">
         <div class="relative">
             <button @click="open = !open"
                 class="w-full flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left cursor-pointer"

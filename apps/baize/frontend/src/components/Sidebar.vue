@@ -2,13 +2,6 @@
     <!-- The way in on mobile. It used to live in the page header; with that
          gone the drawer would have had no opener at all. Floating rather than
          per-page, so it exists on every screen without each one wiring it. -->
-    <button v-if="!drawerOpen && !isOverview" @click="drawerOpen = true" aria-label="Open menu"
-        class="fixed top-4 left-4 z-400 flex h-10 w-10 cursor-pointer flex-col items-center justify-center gap-[3px] rounded-xl border shadow-lg backdrop-blur md:hidden"
-        :class="isOverview ? 'border-neutral-700 bg-neutral-900/90 text-neutral-300' : 'border-slate-700 bg-slate-900/90 text-slate-300'">
-        <span class="block h-[2px] w-4 rounded bg-current" />
-        <span class="block h-[2px] w-4 rounded bg-current" />
-        <span class="block h-[2px] w-4 rounded bg-current" />
-    </button>
 
     <!-- Backdrop, mobile only. The drawer is an overlay there, not a column. -->
     <div v-if="drawerOpen" @click="drawerOpen = false"
@@ -29,7 +22,7 @@
         </div>
 
         <!-- Navigation -->
-        <BranchPicker v-if="!collapsed" :isOverview="isOverview" />
+        <BranchPicker v-if="!collapsed" :isOverview="isOverview" class="mt-4 mx-4" />
 
         <nav class="min-h-0 flex-1 overflow-y-auto py-3 nav-scroll flex flex-col gap-2"
             :class="collapsed ? 'items-center' : ''">

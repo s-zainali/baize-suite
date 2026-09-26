@@ -5,12 +5,12 @@
             <h1 class="text-xl font-black tracking-wide text-white ml-2">Summary</h1>
             <div class="flex gap-4 items-center">
                 <button
-                    class="text-[10px] w-25 uppercase font-bold bg-slate-900/80 px-2 py-1 rounded-md text-slate-300 hover:text-slate-50 cursor-pointer transition duration-300 ease-in-out active:scale-98"
+                    class="hidden sm:block text-[10px] w-25 uppercase font-bold bg-slate-900/80 px-2 py-1 rounded-md text-slate-300 hover:text-slate-50 cursor-pointer transition duration-300 ease-in-out active:scale-98"
                     :class="large ? 'hover:bg-rose-600/70' : 'hover:bg-emerald-600/70'" @click="toggleLarge">
                     {{ large ? 'Small' : 'Large' }}
                 </button>
                 <button
-                    class="text-[10px] w-25 uppercase font-bold bg-slate-900/80 px-2 py-1 rounded-md text-slate-300 hover:text-slate-50 cursor-pointer transition duration-300 ease-in-out active:scale-98"
+                    class="hidden sm:block text-[10px] w-25 uppercase font-bold bg-slate-900/80 px-2 py-1 rounded-md text-slate-300 hover:text-slate-50 cursor-pointer transition duration-300 ease-in-out active:scale-98"
                     :class="sticky ? 'hover:bg-rose-600/70' : 'hover:bg-emerald-600/70'" @click="toggleSticky">
                     {{ sticky ? 'hide' : 'show on top' }}
                 </button>
