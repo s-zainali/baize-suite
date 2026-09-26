@@ -1,7 +1,7 @@
 <template>
     <div class="bg-slate-900 text-slate-100 p-6">
         <StickyHeader class="-mt-6 mb-6 -mx-6"/>
-        <button v-if="selectedTable && isVisible" @click="scrollToTop" class="sm:hidden fixed bottom-8 right-4 px-6 py-2 bg-emerald-600/90 font-bold text-sm rounded-xl z-100 border border-emerald-900 backdrop-blur-[2px]">
+        <button v-if="selectedTable && isVisible" @click="scrollToTop" class="sm:hidden fixed bottom-8 right-6 px-6 py-2 bg-emerald-600/90 font-bold text-xs tracking-wide rounded-xl z-100 border border-emerald-900 backdrop-blur-[2px]">
             CONFIRM
         </button>
         <!-- Header -->
