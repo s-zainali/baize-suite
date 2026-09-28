@@ -783,6 +783,6 @@ const resumeButtonClasses = 'bg-emerald-500 text-white hover:bg-emerald-400'
 const mainAction = () => (canResume.value ? endSession() : toggleTimer())
 const mainActionLabel = computed(() => {
     if (props.table.isActive) return 'Stop'
-    return canResume.value ? 'End & Bill' : 'Start Session'
+    return canResume.value ? 'End & Bill' : 'Start'
 })
 </script>

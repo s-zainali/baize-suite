@@ -1997,7 +1997,7 @@ def recent_payments():
     return jsonify({'payments': payments})
 
 
-@app.route('/api/bills/active', methods=['GET'])
+@app.route('/api/bills/active', methods=['GET', 'POST'])
 def active_bills():
     """Bills awaiting a decision at the counter, newest first.
 
@@ -2018,6 +2018,9 @@ def active_bills():
     # Open means not yet closed. A bill the counter has finished with is gone
     # from here whether it was paid or put on an account; one that is still on
     # screen is still somebody's job, even if the money has been taken.
+    if request.method == 'POST':
+        print(request.json)
+        return {'success': True}
     rows = (ActivityLog.query
             .filter(ActivityLog.closed_at.is_(None))
             .order_by(ActivityLog.id.desc())

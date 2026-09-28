@@ -19,6 +19,7 @@ from flask import Blueprint, jsonify, request, send_from_directory
 from werkzeug.utils import secure_filename
 
 from models import db
+from cdn import cdn_logo_url
 from license_util import (
     verify_token, store_license, license_status, active_license, LicenseError,
     device_fingerprint, clear_license, store_branch_license, _brand_logo_url, is_licensed)
@@ -43,7 +44,7 @@ def register_license_routes(app, require_role):
         lic = active_license()
         return jsonify({
             "clubName": lic.club_name if lic else None,
-            "logoUrl": (lic.logo_url or None) if lic else None,   # CDN URL set at upload
+            "logoUrl": cdn_logo_url(lic.club_uid),   # CDN URL set at upload
         })
 
     @license_bp.route("/license", methods=["GET"])

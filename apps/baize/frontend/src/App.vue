@@ -10,7 +10,7 @@ import { isLoggedIn } from './Auth.js'
 import { progress, ready, label, boot, resetLoader } from './composables/useAppLoader.js'
 import { loadBranding, loadLicense, needsActivation, startHeartbeat, status, syncBranchLicenses } from './composables/useLicense.js'
 import { loadTableTypes } from './composables/useTableTypes.js'
-import { computed, watch, onMounted } from 'vue'
+import { computed, watch, onMounted, ref } from 'vue'
 
 
 const route = useRoute()
@@ -83,7 +83,7 @@ const isOverview = computed(() => route.path === '/overview' )
 
         <div class="flex min-h-[100dvh] flex-col transition-[padding] duration-200"
             :class="showChrome() ? contentOffset : ''">
-            <div class="flex-1">
+            <div class="flex-1 flex flex-col">
                 <!-- Routes are lazily loaded, so give the wait something to look at
                      rather than a blank screen staff will tap twice. -->
                 <RouterView v-slot="{ Component }">

@@ -1,7 +1,5 @@
 <template>
-    <div class="bg-slate-900 p-6 pt-0 text-slate-100 h-[100dvh] flex flex-col">
-
-        <Header :is-bills="true" :refreshing="refreshing" @activate-modal="$event === 'refresh' ? (load(true), loadCanteen(true)) : null"/>
+    <div class="bg-slate-900 p-6 text-slate-100 h-[100dvh] flex flex-col">
 
         <div class="space-y-6 flex-1 overflow-y-scroll">
             <!-- Only the counters this person works. Showing a section they

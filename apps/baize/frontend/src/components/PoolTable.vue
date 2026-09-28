@@ -79,8 +79,9 @@
                             {{ table.id }}
                         </span>
 
-                        <span v-if="isDisplay && !hideDisplayRate" class="text-xl font-semibold tracking-wider text-slate-200">{{
-                            currentRate }}
+                        <span v-if="isDisplay && !hideDisplayRate"
+                            class="text-xl font-semibold tracking-wider text-slate-200">{{
+                                currentRate }}
                             Rs/min</span>
 
 
@@ -120,9 +121,11 @@
                     </div>
                     <div v-if="locked"
                         class="absolute h-full w-full top-0 flex items-center justify-center z-100 text-slate-300 bg-slate-950/80 rounded-xl">
-                        <span class="-rotate-12 tracking-widest font-black text-lg p-3 border-4 border-slate-600 rounded-xl flex items-center gap-2">🔒 LICENCE</span>
+                        <span
+                            class="-rotate-12 tracking-widest font-black text-lg p-3 border-4 border-slate-600 rounded-xl flex items-center gap-2">🔒
+                            LICENCE</span>
                     </div>
-                    <div v-if="(table.isBooked || slotBooked)  && !table.isActive && !table.resumable"
+                    <div v-if="(table.isBooked || slotBooked) && !table.isActive && !table.resumable"
                         class="absolute h-full w-full flex items-center justify-center z-100 text-rose-600 bg-slate-900/70 rounded-xl">
                         <span
                             class="-rotate-20 tracking-widest font-black text-2xl p-3 border-4 border-rose-700 rounded-xl">BOOKED</span>
@@ -164,8 +167,20 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="flex flex-col mb-2 gap-1 border rounded-lg overflow-hidden" :class="isPool || isPrivatePool
+                            ? 'border-sky-600'
+                            : 'border-emerald-600'">
+                            <button
+                                class="pointer-events-auto transform w-full py-1 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-105 disabled:opacity-50 flex flex-col"
+                                :class="isPool || isPrivatePool
+                                    ? 'bg-sky-600 hover:bg-sky-500'
+                                    : 'bg-emerald-600 hover:bg-emerald-500'">
+                                <span>Game Setup</span>
+                            </button>
+                            <span class="text-[8px] mb-1 font-black tracking-widest">Default</span>
+                        </div>
                         <button v-if="!isDisplay" @click="mainAction" :disabled="busy"
-                            class="pointer-events-auto transform rounded-lg w-full py-2 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                            class="pointer-events-auto transform rounded-lg w-full py-2 text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ease-in-out cursor-pointer active:scale-95 disabled:opacity-50"
                             :class="buttonClasses">
                             {{ mainActionLabel }}
                         </button>
@@ -194,17 +209,18 @@ import PlayerChips from './PlayerChips.vue'
 import PlayerIndicator from './PlayerIndicator.vue'
 
 const props = defineProps({
-    locked: { type: Boolean, default: false }, 
-    table: Object, currentRate: Number, 
-    loungeName: { type: String, default: '' }, 
-    isDisplay: { type: Boolean, default: false }, 
-    showBookingStatus: { type: Boolean, default: true }, 
-    canManage: Boolean, 
-    selected : {type: Boolean, default:false},
-    slotBooked: { type: Boolean, default: false }, 
-    bookings: Object, 
+    locked: { type: Boolean, default: false },
+    table: Object, currentRate: Number,
+    loungeName: { type: String, default: '' },
+    isDisplay: { type: Boolean, default: false },
+    showBookingStatus: { type: Boolean, default: true },
+    canManage: Boolean,
+    selected: { type: Boolean, default: false },
+    slotBooked: { type: Boolean, default: false },
+    bookings: Object,
     hideId: { type: Boolean, default: false },
-    hideDisplayRate : {type: Boolean, default: false} })
+    hideDisplayRate: { type: Boolean, default: false }
+})
 /**
  * Who the card should say is playing.
  *
@@ -275,7 +291,7 @@ const isSnooker = computed(
 )
 const isPool = computed(() => props.table.type && props.table.type.toLowerCase().includes('pool'))
 const isPrivatePool = computed(
-    () => props.table.type && props.table.type.toLowerCase().includes('private'),
+    () => props.table.type && props.table.type === 'privatePool',
 )
 const isPrivateSnooker = computed(() => props.table.type === 'privateSnooker')
 
@@ -298,8 +314,8 @@ const tableThemeClasses = computed(() => {
 
     if (isPool.value)
         return props.table.isActive
-        ? 'border-pool-wood-500  bg-sky-600 shadow-2xl'
-        : 'border-pool-wood-900 bg-sky-800'
+            ? 'border-pool-wood-500  bg-sky-600 shadow-2xl'
+            : 'border-pool-wood-900 bg-sky-800'
 
     return props.table.isActive
         ? 'border-purple-400 bg-sky-600 shadow-2xl shadow-purple-500/40'
@@ -338,7 +354,7 @@ const timerClasses = computed(() =>
 const buttonClasses = computed(() =>
     props.table.isActive || canResume.value
         ? 'bg-rose-500 text-white hover:bg-rose-400'
-        : 'bg-amber-500 text-slate-900'
+        : 'bg-amber-500 hover:bg-amber-400 text-slate-900'
 )
 
 const tButtonClasses = computed(() =>
@@ -351,7 +367,7 @@ const resumeButtonClasses = computed(() => 'bg-emerald-500 text-white hover:bg-e
 const mainAction = () => (canResume.value ? endSession() : toggleTimer())
 const mainActionLabel = computed(() => {
     if (props.table.isActive) return 'Stop'
-    return canResume.value ? 'End & Bill' : 'Start Session'
+    return canResume.value ? 'End & Bill' : 'Start'
 })
 
 function flash(message) {
