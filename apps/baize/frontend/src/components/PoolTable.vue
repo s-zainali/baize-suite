@@ -49,7 +49,7 @@
                     :class="[isSnooker ? 'h-[380px]' : 'h-[350px]', tableThemeClasses, isDisplay ? 'flex items-center justify-center' : '']">
                     <PlayerChips v-if="roster.length && playersModal" :players="roster" :removable="!table.isActive"
                         @close="playersModal = false" />
-                    <PoolHole v-for="pos in holePositions" :key="pos" :position="pos" />
+                    <PoolHole v-for="pos in holePositions" :key="pos" :position="pos" :is-pool="isPool" />
                     <span v-if="showBookingStatus && isDisplay && table.isActive"
                         class="absolute top-20 bg-amber-400 py-0.5 px-2 rounded-lg font-black tracking-widest uppercase text-md text-slate-900/90">!
                         ACTIVE</span>
@@ -132,7 +132,7 @@
                     </div>
 
                     <div class="absolute  inset-x-0 px-6 text-center z-10" v-if="!isDisplay || showBookingStatus"
-                        :class="isDisplay ? 'bottom-5' : 'bottom-12'">
+                        :class="isDisplay ? 'bottom-5' : 'bottom-5'">
                         <button v-if="props.table.isActive && !isDisplay"
                             @click="emit('transfer-table', { from_uid: props.table.uid, fromTableNumber: props.table.id, bookingName: props.table.bookingName })"
                             class="pointer-events-auto transform rounded-lg w-full py-2 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-95 mb-2"
@@ -170,14 +170,17 @@
                         <div class="flex flex-col mb-2 gap-1 border rounded-lg overflow-hidden" :class="isPool || isPrivatePool
                             ? 'border-sky-600'
                             : 'border-emerald-600'">
-                            <button
-                                class="pointer-events-auto transform w-full py-1 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-105 disabled:opacity-50 flex flex-col"
-                                :class="isPool || isPrivatePool
-                                    ? 'bg-sky-600 hover:bg-sky-500'
-                                    : 'bg-emerald-600 hover:bg-emerald-500'">
-                                <span>Game Setup</span>
-                            </button>
-                            <span class="text-[8px] mb-1 font-black tracking-widest">Default</span>
+                                <button  v-if="!(table.isActive || canResume)"  @click="selectGame = true"
+                                    class="pointer-events-auto transform w-full py-1 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-105 disabled:opacity-50 flex flex-col"
+                                    :class="isPool || isPrivatePool
+                                        ? 'bg-sky-600 hover:bg-sky-500'
+                                        : 'bg-emerald-600 hover:bg-emerald-500'">
+                                    <span>Game Setup</span>
+                                </button>
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-black tracking-widest">{{ selectedGame }}</span>
+                                <PoolRack v-if="!(table.isActive || canResume)" :game-type="selectedGame" />
+                            </div>
                         </div>
                         <button v-if="!isDisplay" @click="mainAction" :disabled="busy"
                             class="pointer-events-auto transform rounded-lg w-full py-2 text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ease-in-out cursor-pointer active:scale-95 disabled:opacity-50"
@@ -195,6 +198,26 @@
             <LinkPlayerModal v-if="linking" v-model="roster" @linked="onLinked" @update:modelValue="roster = $event"
                 @close-modal="linking = false" />
 
+            <div v-if="selectGame"
+                class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-[4px] md:pl-[var(--modal-inset,1rem)]">
+                <div class="w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col gap-6 relative">
+                    <button @click="selectGame = null"
+                        class="absolute top-4 right-4 cursor-pointer hover:text-rose-500">✕</button>
+                    <h1 class="text-xl font-black tracking-widest">Games</h1>
+                    <div class="grid grid-cols-5 gap-4">
+                        <button v-for="type in POOL_GAME_TYPES" @click="selectedGame = type, selectGame = false"
+                            :class="tableButtonClass">
+                            <span class="uppercase text-sm tracking-wide">{{ type }}</span>
+                            <PoolRack :game-type="type" />
+                        </button>
+                        <button v-if="isSnooker" v-for="type in SNOOKER_GAME_TYPES"
+                            @click="selectedGame = type, selectGame = false" :class="tableButtonClass">
+                            <span class="uppercase text-sm tracking-wide">{{ type }}</span>
+                            <PoolRack :game-type="type" />
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -207,6 +230,22 @@ import LinkPlayerModal from './Modals/LinkPlayerModal.vue'
 import PlayerPicker from './PlayerPicker.vue'
 import PlayerChips from './PlayerChips.vue'
 import PlayerIndicator from './PlayerIndicator.vue'
+import PoolRack from './PoolRack.vue'
+
+const tableButtonClass = 'aspect-square p-2 rounded-xl bg-slate-800 flex  flex-col items-center justify-center cursor-pointer border border-slate-700 hover:bg-slate-700'
+
+const POOL_GAME_TYPES = [
+    '8-ball',
+    '9-ball',
+    '10-ball',
+]
+
+const SNOOKER_GAME_TYPES = [
+    'snooker-15',
+    'snooker-10',
+    'snooker-6',
+    'century'
+]
 
 const props = defineProps({
     locked: { type: Boolean, default: false },
@@ -235,6 +274,7 @@ const playerNames = computed(() => {
     return label ? label.split(',').map((n) => n.trim()).filter(Boolean) : []
 })
 
+const selectGame = ref(false)
 const playersModal = ref(false)
 
 const playerLabel = computed(() => playerNames.value.join(', ') || 'Walk-in Guest')
@@ -360,6 +400,11 @@ const buttonClasses = computed(() =>
 const tButtonClasses = computed(() =>
     'bg-amber-500 text-slate-900'
 )
+
+const selectedGame = ref('')
+
+if (isPool.value) {selectedGame.value = '8-ball' }
+else {selectedGame.value = 'snooker-15'}
 
 const resumeButtonClasses = computed(() => 'bg-emerald-500 text-white hover:bg-emerald-400')
 

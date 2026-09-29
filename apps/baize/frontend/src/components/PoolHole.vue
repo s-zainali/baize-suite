@@ -1,7 +1,7 @@
 <template>
   <div
     class="z-4 absolute rounded-full bg-neutral-900 border border-neutral-950 border-1 shadow-[0px_0px_3px_0px_black]"
-    :class="positionClasses, isBadge? 'h-6 w-6' : 'h-4 w-4'"
+    :class="positionClasses, isPool? 'h-4 w-4' : 'h-4 w-4'"
   ></div>
 </template>
 
@@ -13,7 +13,7 @@ const props = defineProps({
     type: String,
     required: true,
   },
-  isBadge: {
+  isPool: {
     type: Boolean,
     default: false
   }
