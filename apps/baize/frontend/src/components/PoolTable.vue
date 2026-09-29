@@ -179,7 +179,6 @@
                                 </button>
                             <div class="flex flex-col">
                                 <span class="text-[10px] font-black tracking-widest">{{ selectedGame }}</span>
-                                <PoolRack v-if="!(table.isActive || canResume)" :game-type="selectedGame" />
                             </div>
                         </div>
                         <button v-if="!isDisplay" @click="mainAction" :disabled="busy"
@@ -223,7 +222,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import PoolHole from './PoolHole.vue'
 import { useStation } from '@/composables/useStation.js'
 import LinkPlayerModal from './Modals/LinkPlayerModal.vue'
@@ -315,6 +314,7 @@ const {
     toggleTimer,
     resumeSession,
     endSession,
+    setGame,
 } = useStation(props, emit)
 
 const holePositions = [
@@ -405,6 +405,15 @@ const selectedGame = ref('')
 
 if (isPool.value) {selectedGame.value = '8-ball' }
 else {selectedGame.value = 'snooker-15'}
+
+// Backend is the source of truth: reflect the server's game when active, and
+// push any pick back — persisted mid-session, or mirrored so start sends it.
+watch(() => props.table.gameType, (g) => { if (g) selectedGame.value = g }, { immediate: true })
+watch(selectedGame, (g) => {
+    if (!g) return
+    if (props.table.isActive) { if (g !== props.table.gameType) setGame(g) }
+    else { props.table.gameType = g }
+})
 
 const resumeButtonClasses = computed(() => 'bg-emerald-500 text-white hover:bg-emerald-400')
 

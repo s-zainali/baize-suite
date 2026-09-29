@@ -420,6 +420,21 @@ def rate_for(table_type, when=None):
     return row.weekend_rate if when.weekday() >= 5 else row.weekday_rate
 
 
+def game_rate_for(table_type, when=None):
+    """Per-game rate in force for a table type (weekend = Sat/Sun)."""
+    row = GlobalRate.query.filter_by(table_type=table_type).first()
+    if not row:
+        return 0
+    when = when or datetime.now()
+    return row.weekend_game_rate if when.weekday() >= 5 else row.weekday_game_rate
+
+
+def billing_mode_for(table_type):
+    """'per_minute' (flat time) or 'per_game' for a table type."""
+    row = GlobalRate.query.filter_by(table_type=table_type).first()
+    return row.billing_mode if row else 'per_minute'
+
+
 def lounge_name_for(table):
     if not table.lounge_uid:
         return ''
@@ -568,9 +583,20 @@ def build_invoice(session):
     # Headline rate for the ledger column: whichever station carried the most time
     headline = max(rows, key=lambda r: r['billableMins'], default=None)
 
+    # Per-game billing: when the headline station is billed per game, the play
+    # charge is games × per-game rate rather than minutes × per-minute rate.
+    game_type = session.game_type
+    games_played = session.games_played or 0
+    if headline and billing_mode_for(headline['tableType']) == 'per_game':
+        _games = max(1, games_played)
+        play_total = _games * game_rate_for(headline['tableType'])
+        total_cost = play_total + canteen_total
+
     return {
         'receiptId': session.receipt_id,
         'sessionId': session.id,
+        'gameType': game_type,
+        'gamesPlayed': games_played,
         # A khata needs somebody to chase, so it's offered only when the tab
         # carries a name. A nameless walk-in must settle at the counter.
         'player': session.guest_name or 'Walk-in Guest',
@@ -634,6 +660,7 @@ def upsert_log(invoice, session):
     # Booking-started tabs carry the customer on the session even when the
     # invoice doesn't name them — fall back to it so history/analytics link up.
     log.customer_id = invoice.get('customerId') or session.customer_id
+    log.game_type = invoice.get('gameType')
     db.session.flush()
     invoice['logId'] = log.id
     invoice['paymentStatus'] = log.payment_status
@@ -726,7 +753,7 @@ def _sync_booking_status(sync_id, status):
         pass
 
 
-def start_session(table, booking_name, players=None):
+def start_session(table, booking_name, players=None, game_type=None):
     # A lingering stopped tab on this station is settled rather than resumed
     if table.session_id:
         previous = PlaySession.query.get(table.session_id)
@@ -748,6 +775,8 @@ def start_session(table, booking_name, players=None):
         # The first linked account owns the tab, matching what booking-started
         # sessions already did. Others are recorded but don't claim the bill.
         customer_id=next((p['customerId'] for p in roster if p['customerId']), None),
+        game_type=(game_type or None),
+        games_played=(1 if game_type else 0),
     )
     db.session.add(session)
     db.session.flush()
@@ -1302,7 +1331,10 @@ def get_state():
     queue = Queue.query.filter_by(deleted_at=None).filter(_branch_scope(Queue)).all()
     tables = PoolTable.query.filter(PoolTable.status != 'deleted').filter(_branch_scope(PoolTable)).order_by(PoolTable.sort_order).all()
     rate_rows = GlobalRate.query.all()
-    rates = {r.table_type: {'weekday': r.weekday_rate, 'weekend': r.weekend_rate}
+    rates = {r.table_type: {'weekday': r.weekday_rate, 'weekend': r.weekend_rate,
+                            'mode': r.billing_mode,
+                            'weekdayGame': r.weekday_game_rate,
+                            'weekendGame': r.weekend_game_rate}
              for r in rate_rows}
     lounges = Lounge.query.filter(Lounge.deleted_at.is_(None)).filter(_branch_scope(Lounge)).all()
     # The dashboard strip lists only what still needs starting.
@@ -1474,6 +1506,26 @@ def lookup_customer():
     })
 
 
+@app.route('/api/tables/<uid>/game', methods=['POST'])
+def set_table_game(uid):
+    """Set / change the game being played on an active station. The backend is
+    the source of truth; a change to a different game counts as a new game
+    (drives per-game billing)."""
+    require_capability('floor')
+    data = request.json or {}
+    table = PoolTable.query.filter_by(uid=uid).first_or_404()
+    session = PlaySession.query.get(table.session_id) if table.session_id else None
+    if not session or session.status != 'active':
+        return jsonify({'error': 'no_active_session'}), 400
+    new_game = (data.get('gameType') or '').strip() or None
+    if new_game and new_game != session.game_type:
+        session.games_played = (session.games_played or 0) + 1
+    session.game_type = new_game
+    db.session.commit()
+    return jsonify({'success': True, 'gameType': session.game_type,
+                    'gamesPlayed': session.games_played or 0})
+
+
 @app.route('/api/tables/toggle', methods=['POST'])
 def toggle_table():
     require_capability('floor')
@@ -1483,7 +1535,7 @@ def toggle_table():
     if data['isActive']:
         if not _type_entitled(table.table_type, table.branch_id):
             return jsonify({'error': 'feature_not_licensed', 'feature': table.table_type}), 403
-        session = start_session(table, data.get('bookingName'), data.get('players'))
+        session = start_session(table, data.get('bookingName'), data.get('players'), data.get('gameType'))
         return jsonify({
             'success': True,
             'sessionId': session.id,
@@ -2543,6 +2595,12 @@ def update_rates():
             row.weekday_rate = int(vals['weekday'])
         if 'weekend' in vals:
             row.weekend_rate = int(vals['weekend'])
+        if 'mode' in vals:
+            row.billing_mode = 'per_game' if vals['mode'] == 'per_game' else 'per_minute'
+        if 'weekdayGame' in vals:
+            row.weekday_game_rate = int(vals['weekdayGame'])
+        if 'weekendGame' in vals:
+            row.weekend_game_rate = int(vals['weekendGame'])
     db.session.commit()
     return jsonify({'success': True})
 

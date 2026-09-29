@@ -139,6 +139,7 @@ export function useStation(props, emit) {
                     isActive: true,
                     bookingName: props.table.bookingName,
                     players: props.table.players || [],
+                    gameType: props.table.gameType || null,
                 }),
             })
             const data = await res.json()
@@ -250,6 +251,27 @@ export function useStation(props, emit) {
         }
     }
 
+    // Backend is the source of truth for the game being played; a change while
+    // active is persisted (and counts toward per-game billing) server-side.
+    async function setGame(gameType) {
+        props.table.gameType = gameType || null            // optimistic
+        try {
+            const res = await authFetch(`${API_URL}/tables/${props.table.uid}/game`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gameType: gameType || null }),
+            })
+            const data = await res.json()
+            emit('update-status', {
+                uid: props.table.uid,
+                gameType: data.gameType,
+                gamesPlayed: data.gamesPlayed,
+            })
+        } catch (e) {
+            error.value = e.message
+        }
+    }
+
     const toggleTimer = () => (props.table.isActive ? stopSession() : startSession())
 
     const closeReceipt = () => {
@@ -306,6 +328,7 @@ export function useStation(props, emit) {
         bookedIn,
         toggleTimer,
         startSession,
+        setGame,
         stopSession,
         resumeSession,
         endSession,

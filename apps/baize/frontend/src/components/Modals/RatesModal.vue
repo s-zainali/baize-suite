@@ -1,7 +1,7 @@
 <template>
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md md:pl-[var(--modal-inset,1rem)]"
         @click.self="emit('close-modal')">
-        <div class="bg-slate-900 border border-slate-800 w-full max-w-5xl rounded-3xl p-6 shadow-2xl">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-5xl max-h-[90dvh] overflow-y-scroll rounded-3xl p-6 shadow-2xl">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-lg font-black text-white">Global Billing Scales</h2>
                 <button @click="emit('close-modal')"
@@ -18,6 +18,23 @@
                     <div class="grid grid-cols-2 gap-3">
                         <StepperField v-model="local[t.key].weekday" label="Weekday" suffix="Rs" accent="slate" />
                         <StepperField v-model="local[t.key].weekend" label="Weekend" suffix="Rs" accent="amber" />
+                    </div>
+
+                    <div class="mt-3 flex gap-1.5 rounded-xl bg-slate-900 p-1">
+                        <button type="button" @click="local[t.key].mode = 'per_minute'"
+                            class="flex-1 rounded-lg py-1.5 text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer"
+                            :class="local[t.key].mode !== 'per_game' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-slate-200'">
+                            Per Minute
+                        </button>
+                        <button type="button" @click="local[t.key].mode = 'per_game'"
+                            class="flex-1 rounded-lg py-1.5 text-[10px] font-black uppercase tracking-wider transition-colors cursor-pointer"
+                            :class="local[t.key].mode === 'per_game' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200'">
+                            Per Game
+                        </button>
+                    </div>
+                    <div v-if="local[t.key].mode === 'per_game'" class="mt-3 grid grid-cols-2 gap-3">
+                        <StepperField v-model="local[t.key].weekdayGame" label="Weekday / game" suffix="Rs" accent="slate" />
+                        <StepperField v-model="local[t.key].weekendGame" label="Weekend / game" suffix="Rs" accent="amber" />
                     </div>
                 </div>
                 <p v-if="!rows.length" class="col-span-3 text-center text-sm text-slate-500 py-6">
@@ -58,9 +75,12 @@ const local = reactive(
             .sort(([a], [b]) => rank(a) - rank(b))
             .map(([key, val]) => {
                 if (val && typeof val === 'object') {
-                    return [key, { weekday: val.weekday ?? 0, weekend: val.weekend ?? 0 }]
+                    return [key, { weekday: val.weekday ?? 0, weekend: val.weekend ?? 0,
+                                   mode: val.mode ?? 'per_minute',
+                                   weekdayGame: val.weekdayGame ?? 0, weekendGame: val.weekendGame ?? 0 }]
                 }
-                return [key, { weekday: val ?? 0, weekend: Math.round((val ?? 0) * 1.3) }]
+                return [key, { weekday: val ?? 0, weekend: Math.round((val ?? 0) * 1.3),
+                               mode: 'per_minute', weekdayGame: 0, weekendGame: 0 }]
             })
     )
 )
@@ -70,7 +90,7 @@ const local = reactive(
 // other types are left untouched in `local` and preserved on save.
 watchEffect(() => {
     for (const t of entitledTypes.value) {
-        if (!local[t.key]) local[t.key] = { weekday: 0, weekend: 0 }
+        if (!local[t.key]) local[t.key] = { weekday: 0, weekend: 0, mode: 'per_minute', weekdayGame: 0, weekendGame: 0 }
     }
 })
 const rows = computed(() =>

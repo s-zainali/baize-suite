@@ -118,6 +118,8 @@ class PlaySession(SyncMixin, db.Model):
     # link between a played session and an account — walk-ins stay anonymous.
     customer_id = db.Column(db.Integer, nullable=True, index=True)  # CENTRAL customer id (no local FK)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now())
+    game_type = db.Column(db.String(30), nullable=True)   # game being played, e.g. '8-ball', 'snooker-15'
+    games_played = db.Column(db.Integer, default=0)       # count of games (drives per-game billing)
 
 
 class SessionPlayer(SyncMixin, db.Model):
@@ -207,8 +209,12 @@ class GlobalRate(SyncMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     branch_id = db.Column(db.Integer, db.ForeignKey('branch.id'), nullable=True, index=True)
     table_type = db.Column(db.String(50), nullable=False)
-    weekday_rate = db.Column(db.Integer, nullable=False, default=0)
-    weekend_rate = db.Column(db.Integer, nullable=False, default=0)
+    weekday_rate = db.Column(db.Integer, nullable=False, default=0)   # per-minute (flat)
+    weekend_rate = db.Column(db.Integer, nullable=False, default=0)   # per-minute (flat)
+    # 'per_minute' (flat time billing) or 'per_game' (charged per game played).
+    billing_mode = db.Column(db.String(12), nullable=False, default='per_minute')
+    weekday_game_rate = db.Column(db.Integer, nullable=False, default=0)  # per-game
+    weekend_game_rate = db.Column(db.Integer, nullable=False, default=0)  # per-game
 
     __table_args__ = (
         db.UniqueConstraint('branch_id', 'table_type', name='uq_branch_table_type'),
@@ -305,6 +311,7 @@ class ActivityLog(SyncMixin, db.Model):
     # Who owes it. Only set for credit — a walk-in has nobody to chase.
     khata_name = db.Column(db.String(100), nullable=True)
     customer_id = db.Column(db.Integer, nullable=True, index=True)
+    game_type = db.Column(db.String(30), nullable=True)   # game played (snapshot)
     # When the counter finished with this bill. A bill is closed only after it
     # has been settled — paid, or placed on someone's account — so closing is a
     # record that the money was dealt with, not a way to make it disappear.
