@@ -167,7 +167,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="flex flex-col mb-2 gap-1 border rounded-lg overflow-hidden" :class="isPool || isPrivatePool
+                        <div v-if="isPool" class="flex flex-col mb-2 gap-1 border rounded-lg overflow-hidden" :class="isPool || isPrivatePool
                             ? 'border-sky-600'
                             : 'border-emerald-600'">
                                 <button  v-if="!(table.isActive || canResume)"  @click="selectGame = true"
