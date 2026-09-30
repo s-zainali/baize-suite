@@ -177,7 +177,7 @@
                                         : 'bg-emerald-600 hover:bg-emerald-500'">
                                     <span>Game Setup</span>
                                 </button>
-                            <div class="flex flex-col">
+                            <div class="flex flex-col"> 
                                 <span class="text-[10px] font-black tracking-widest">{{ selectedGame }}</span>
                             </div>
                         </div>
