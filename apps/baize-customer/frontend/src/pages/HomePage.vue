@@ -90,8 +90,8 @@
             <!-- TAB 1: MAIN DASHBOARD VIEW -->
             <main v-if="activeTab === 'dashboard'" class="flex-1 space-y-4">
                 <!-- Summary strip -->
-                <section class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                    <div v-for="stat in stats" :key="stat.label" 
+                <section class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-4">
+                    <div v-for="stat in stats" :key="stat.label"
                         class="group relative overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 shadow-[] p-4 backdrop-blur-xl transition-all duration-300 hover:border-slate-700/80 hover:bg-slate-700/80">
                         <span
                             class="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-current to-transparent opacity-70 transition-opacity group-hover:opacity-100"
@@ -487,7 +487,7 @@
             </main>
 
             <!-- Footer -->
-            <PoweredByZain :forCustomer="true" class="mb-20 sm:mb-0" />
+            <PoweredByZain :forCustomer="true" class="mb-25 sm:mb-0" />
 
         </div>
 
@@ -609,13 +609,13 @@ const topClub = computed(() => {
 })
 
 const stats = computed(() => [
-    {
-        label: 'Upcoming',
-        value: upcoming.value.length,
-        hint: upcoming.value.length === 1 ? 'reservation' : 'reservations',
-        tone: 'text-emerald-400',
-        accent: 'via-emerald-500/60',
-    },
+    // {
+    //     label: 'Upcoming',
+    //     value: upcoming.value.length,
+    //     hint: upcoming.value.length === 1 ? 'reservation' : 'reservations',
+    //     tone: 'text-emerald-400',
+    //     accent: 'via-emerald-500/60',
+    // },
     {
         label: 'Games Played',
         value: summary.value.gamesPlayed,
@@ -623,13 +623,13 @@ const stats = computed(() => [
         tone: 'text-sky-400',
         accent: 'via-sky-500/60',
     },
-    {
-        label: 'Time Played',
-        value: totalPlayed.value,
-        hint: 'across all stations',
-        tone: 'text-violet-400',
-        accent: 'via-violet-500/60',
-    },
+    // {
+    //     label: 'Time Played',
+    //     value: totalPlayed.value,
+    //     hint: 'across all stations',
+    //     tone: 'text-violet-400',
+    //     accent: 'via-violet-500/60',
+    // },
     {
         label: 'Favourite Game',
         value: favourite.value.label,
