@@ -77,6 +77,7 @@
                     : null">
                     <component v-if="!smallStations" :is="componentFor(table.type)" :table="table"
                         :current-rate="getCurrentRate(table.type)" :canManage="canManage" :lounge-name="lounge.name"
+                        :game-tracking="gameTracking"
                         :bookings="bookings" :locked="table.entitled === false && !table.isActive"
                         @update-status="emit('update-status', $event)" @open-receipt="emit('open-receipt', $event)"
                         @remove-table="emit('remove-table', $event)" @transfer-table="emit('transfer-table', $event)" />
@@ -113,7 +114,7 @@ import { authFetch, API_URL } from '@/Auth.js'
 import { componentFor } from '@/composables/useTableTypes.js'
 
 
-const props = defineProps({ lounge: Object, tableLounge: Array, rates: Object, canManage: Boolean, bookings: Object, smallStations: { type: Boolean, default: false } })
+const props = defineProps({ lounge: Object, tableLounge: Array, rates: Object, canManage: Boolean, bookings: Object, smallStations: { type: Boolean, default: false }, gameTracking: { type: Boolean, default: false } })
 const emit = defineEmits(["open-receipt", "update-status", "remove-table", "transfer-table", "select-table", "rename-lounge", "remove-lounge"])
 
 // const API_URL = import.meta.env.VITE_API_URL

@@ -167,7 +167,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="flex flex-col mb-2 gap-1 border rounded-lg overflow-hidden" :class="isPool || isPrivatePool
+                        <div v-if="gameTracking" class="flex flex-col mb-2 gap-1 border rounded-lg overflow-hidden" :class="isPool || isPrivatePool
                             ? 'border-sky-600'
                             : 'border-emerald-600'">
                                 <button  v-if="!(table.isActive || canResume)"  @click="selectGame = true"
@@ -177,8 +177,9 @@
                                         : 'bg-emerald-600 hover:bg-emerald-500'">
                                     <span>Game Setup</span>
                                 </button>
-                            <div class="flex flex-col"> 
+                            <div class="flex flex-col">
                                 <span class="text-[10px] font-black tracking-widest">{{ selectedGame }}</span>
+                                <PoolRack v-if="!(table.isActive || canResume)" :game-type="selectedGame" />
                             </div>
                         </div>
                         <button v-if="!isDisplay" @click="mainAction" :disabled="busy"
@@ -197,7 +198,7 @@
             <LinkPlayerModal v-if="linking" v-model="roster" @linked="onLinked" @update:modelValue="roster = $event"
                 @close-modal="linking = false" />
 
-            <div v-if="selectGame"
+            <div v-if="selectGame && gameTracking"
                 class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-[4px] md:pl-[var(--modal-inset,1rem)]">
                 <div class="w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col gap-6 relative">
                     <button @click="selectGame = null"
@@ -253,6 +254,7 @@ const props = defineProps({
     isDisplay: { type: Boolean, default: false },
     showBookingStatus: { type: Boolean, default: true },
     canManage: Boolean,
+    gameTracking: { type: Boolean, default: false },
     selected: { type: Boolean, default: false },
     slotBooked: { type: Boolean, default: false },
     bookings: Object,

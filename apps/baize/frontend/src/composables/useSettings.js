@@ -17,6 +17,7 @@ const settings = reactive({})
 const DEFAULTS = {
     dashboard_show_bills: true,   // pop the table receipt on checkout
     small_stations: false,        // half-size station cards on the dashboard
+    game_tracking: false,         // track the game type being played + enable the picker
     canteen_show_bills: true,     // pop the canteen receipt on checkout
     summary_sticky: false,        // pin the dashboard summary strip to the top
 }

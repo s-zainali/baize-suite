@@ -1100,7 +1100,8 @@ DEFAULT_SETTINGS = {
     'canteen_show_bills': True,     # pop the canteen receipt on checkout
     'summary_sticky': False,        # pin the dashboard summary strip to the top
     'allow_active_transfer': False, # allow transferring onto an occupied station (swaps the two tabs)
-    'small_stations': False,        # render the dashboard station cards at half size
+    'small_stations': False,
+    'game_tracking': False,        # render the dashboard station cards at half size
 }
 
 

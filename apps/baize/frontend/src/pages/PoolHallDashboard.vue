@@ -8,7 +8,7 @@
                 : 'transition-all duration-300',
         ]" class="flex-1">
             <Header @activate-modal="handleActivateModal($event)" @toggle-bills="toggleBills('dashboard')"
-                @toggle-station-size="toggleStationSize()" :show-bills="showBills" :small-stations="smallStations"
+                @toggle-station-size="toggleStationSize()" @toggle-game-tracking="toggleGameTracking()" :show-bills="showBills" :small-stations="smallStations" :game-tracking="gameTracking"
                 :isOwner="isOwner" :isDashboard="true" />
 
             <SummaryStrip :table-types="tableTypes" :table-summary="tableSummary" />
@@ -31,7 +31,7 @@
 
                 <TableGrid v-for="lounge in lounges" :key="lounge.id" :lounge="lounge" :rates="rates"
                     :tableLounge="tablesForLounge(lounge.uid)" :canManage="canManage" :bookings="bookings"
-                    :small-stations="smallStations" @update-status="handleTableUpdate($event)"
+                    :small-stations="smallStations" :game-tracking="gameTracking" @update-status="handleTableUpdate($event)"
                     @open-receipt="showBills ? activeReceipt = $event : ''"
                     @transfer-table="handleTransferTable($event)" @remove-table="removeTable($event)"
                     @rename-lounge="renameLounge($event)" @remove-lounge="removeLounge($event)" />
@@ -146,6 +146,7 @@ let fromTable = ref(null)
 let fromTableUid = ref(null)
 const newGuest = ref({ name: '', tableType: '', id: 0, tableId: '' })
 const smallStations = ref(false)
+const gameTracking = ref(false)
 
 const existingStationNames = computed(() =>
     lounges.value.flatMap((l) => (l.tables || []).map((t) => t.id ?? t.tableId)),
@@ -161,6 +162,10 @@ const toggleBills = (context) => {
 const toggleStationSize = (context) => {
     smallStations.value = !smallStations.value
     setSetting('small_stations', smallStations.value)
+}
+const toggleGameTracking = () => {
+    gameTracking.value = !gameTracking.value
+    setSetting('game_tracking', gameTracking.value)
 }
 
 
@@ -269,6 +274,7 @@ onMounted(async () => {
     await loadSettings()
     showBills.value = settingValue('dashboard_show_bills', true)
     smallStations.value = settingValue('small_stations', false)
+    gameTracking.value = settingValue('game_tracking', false)
 })
 
 const randomInt = (min, max) => {
