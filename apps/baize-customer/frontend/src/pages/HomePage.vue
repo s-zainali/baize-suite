@@ -43,7 +43,7 @@
 
             <!-- View Switcher Tabs (Mobile & Quick Toggle) -->
              <div class="fixed sm:relative bottom-0 left-0 z-40 w-full sm:w-auto">
-                 <nav class="sm:mb-4 bg-slate-800/50 backdrop-blur-sm rounded-4xl border border-slate-700 bottom-0 left-0 z-40 sm:relative grid grid-cols-4 sm:grid-cols-1 px-6 py-4 sm:flex sm:bg-transparent gap-2 sm:border-b sm:border-slate-800/80 sm:pb-3  m-2">
+                 <nav class="sm:mb-4 bg-slate-800/50 backdrop-blur-sm rounded-4xl border border-slate-700 bottom-0 left-0 z-40 sm:relative grid grid-cols-4 sm:grid-cols-1 px-6 py-4 sm:flex gap-2 sm:border-b sm:border-slate-800/80 m-6 sm:m-0">
                      <div class="bg-slate-900 rounded-2xl">
                          <button @click="setTab('dashboard')"
                              :class="activeTab === 'dashboard' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-900 text-slate-400 border-slate-700/60 hover:text-slate-200'"
@@ -91,7 +91,7 @@
             <main v-if="activeTab === 'dashboard'" class="flex-1 space-y-4">
                 <!-- Summary strip -->
                 <section class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                    <div v-for="stat in stats" :key="stat.label"
+                    <div v-for="stat in stats" :key="stat.label" 
                         class="group relative overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 shadow-[] p-4 backdrop-blur-xl transition-all duration-300 hover:border-slate-700/80 hover:bg-slate-700/80">
                         <span
                             class="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-current to-transparent opacity-70 transition-opacity group-hover:opacity-100"
