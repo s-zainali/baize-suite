@@ -42,38 +42,44 @@
             </header>
 
             <!-- View Switcher Tabs (Mobile & Quick Toggle) -->
-            <nav class="sm:mb-4 fixed bg-slate-900/80 backdrop-blur-[2px] rounded-t-xl border-t border-slate-700 bottom-0 left-0 z-40 sm:relative grid grid-cols-3 sm:grid-cols-1 p-4 sm:flex sm:bg-transparent gap-2 sm:border-b sm:border-slate-800/80 sm:pb-3">
-                <div class="bg-slate-800 rounded-xl">
+            <nav class="sm:mb-4 fixed bg-slate-800/80 backdrop-blur-[2px] rounded-4xl border border-slate-700 bottom-0 left-0 z-40 sm:relative grid grid-cols-3 sm:grid-cols-1 px-6 py-4 sm:flex sm:bg-transparent gap-2 sm:border-b sm:border-slate-800/80 sm:pb-3 w-full m-2">
+                <div class="bg-slate-900 rounded-2xl">
                     <button @click="setTab('dashboard')"
-                        :class="activeTab === 'dashboard' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-800 text-slate-400 border-slate-700/60 hover:text-slate-200'"
-                        class="flex items-center gap-2 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer h-full w-full">
+                        :class="activeTab === 'dashboard' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-900 text-slate-400 border-slate-700/60 hover:text-slate-200'"
+                        class="flex items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer h-full w-full">
                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                         </svg>
-                        Dashboard
+                        <span class="hidden sm:inline">
+                            Dashboard
+                        </span>
                     </button>
                 </div>
-                <div class="bg-slate-800 rounded-xl">
+                <div class="bg-slate-900 rounded-2xl">
                     <button @click="setTab('clubs')"
-                        :class="activeTab === 'clubs' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-800 text-slate-400 border-slate-700/60 hover:text-slate-200'"
-                        class="h-full w-full flex items-center gap-2 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer">
+                        :class="activeTab === 'clubs' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-900 text-slate-400 border-slate-700/60 hover:text-slate-200'"
+                        class="h-full w-full flex items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer">
                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
-                        Explore Clubs
+                        <span class="hidden sm:inline">
+                            Explore Clubs
+                        </span>
                     </button>
                 </div>
-                <div class="bg-slate-800 rounded-xl">
+                <div class="bg-slate-900 rounded-2xl">
                     <button @click="setTab('friends')"
-                        :class="activeTab === 'friends' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-800 text-slate-400 border-slate-700/60 hover:text-slate-200'"
-                        class="h-full w-full flex items-center gap-2 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer">
+                        :class="activeTab === 'friends' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-900 text-slate-400 border-slate-700/60 hover:text-slate-200'"
+                        class="h-full w-full flex items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer">
                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
-                        Friends
+                        <span class="hidden sm:inline">
+                            Friends
+                        </span>
                     </button>
                 </div>
             </nav>
