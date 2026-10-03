@@ -21,10 +21,6 @@
                             <span v-if="bills.length" class="text-slate-400">
                                 {{ bills.length }} open · Rs {{ outstanding.toLocaleString('en-PK') }}
                             </span>
-                            <RouterLink v-if="onAccount" to="/dashboard"
-                                class="rounded-lg border border-amber-600/40 bg-amber-500/10 px-2.5 py-1 text-amber-400">
-                                Rs {{ onAccount.toLocaleString('en-PK') }} on account
-                            </RouterLink>
                         </div>
                     </div>
 
