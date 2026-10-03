@@ -111,3 +111,21 @@ class GameLog(Base):
     receipt_json = Column(Text, default="")     # full snapshot for BillingReceipt
     played_at = Column(DateTime)
     created_at = Column(DateTime, default=dt.datetime.utcnow)
+
+
+class Membership(Base):
+    """A customer's membership at a club. Granted by the club (paid) or earned
+    by games played; unlocks member perks (khata, discounts). Central holds the
+    record; the club owns the policy and the granting."""
+    __tablename__ = "membership"
+    id = Column(Integer, primary_key=True)
+    customer_id = Column(Integer, index=True, nullable=False)
+    club_uid = Column(String(40), index=True, nullable=False)
+    status = Column(String(12), default="active")     # active | lapsed
+    tier = Column(String(40), default="member")
+    source = Column(String(12), default="manual")     # manual (paid) | games (earned)
+    games_count = Column(Integer, default=0)           # games logged toward/at membership
+    note = Column(String(200), default="")
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    updated_at = Column(DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
+    __table_args__ = (UniqueConstraint("customer_id", "club_uid", name="uq_membership_pair"),)

@@ -20,12 +20,12 @@
                     <button type="button" @click="toggle(t.key)"
                         class="flex w-full items-center gap-3 px-4 py-3 text-left">
                         <span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="{ background: t.color || '#64748b' }"></span>
-                        <span class="flex-1 text-sm font-black capitalize tracking-wide text-slate-100">{{ t.label }}</span>
+                        <span class="flex-1 truncate text-sm font-black capitalize tracking-wide text-slate-100">{{ t.label }}</span>
                         <span class="rounded-md px-2 py-0.5 text-[9px] font-black uppercase tracking-wider"
-                            :class="local[t.key].mode === 'per_game' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-slate-700/60 text-slate-300'">
-                            {{ local[t.key].mode === 'per_game' ? 'Per game' : 'Per min' }}
+                            :class="local[t.key].mode === 'per_minute' ? 'bg-slate-700/60 text-slate-300' : 'bg-emerald-500/15 text-emerald-400'">
+                            {{ modeLabel(local[t.key].mode) }}
                         </span>
-                        <span class="font-mono text-xs font-bold text-slate-400">{{ summary(t.key) }}</span>
+                        <span class="hidden font-mono text-xs font-bold text-slate-400 sm:inline">{{ summary(t.key) }}</span>
                         <svg class="h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200"
                             :class="openKey === t.key ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="none"
                             stroke="currentColor" stroke-width="2">
@@ -35,16 +35,11 @@
 
                     <!-- expanded body -->
                     <div v-if="openKey === t.key" class="border-t border-slate-800 px-4 pb-4 pt-3">
-                        <p class="mb-2 text-[9px] font-black uppercase tracking-widest text-slate-500">Per-minute rate</p>
-                        <div class="grid grid-cols-2 gap-3">
-                            <StepperField v-model="local[t.key].weekday" label="Weekday" suffix="Rs" accent="slate" />
-                            <StepperField v-model="local[t.key].weekend" label="Weekend" suffix="Rs" accent="amber" />
-                        </div>
-
-                        <div class="mt-4 flex gap-1.5 rounded-xl bg-slate-900 p-1">
+                        <!-- one mode toggle for everything -->
+                        <div class="flex gap-1.5 rounded-xl bg-slate-900 p-1">
                             <button type="button" @click="local[t.key].mode = 'per_minute'"
                                 class="flex-1 cursor-pointer rounded-lg py-1.5 text-[10px] font-black uppercase tracking-wider transition-colors"
-                                :class="local[t.key].mode !== 'per_game' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-slate-200'">
+                                :class="local[t.key].mode === 'per_minute' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-slate-200'">
                                 Per Minute
                             </button>
                             <button type="button" @click="local[t.key].mode = 'per_game'"
@@ -52,26 +47,35 @@
                                 :class="local[t.key].mode === 'per_game' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200'">
                                 Per Game
                             </button>
+                            <button v-if="showSubgame(t.key)" type="button" @click="local[t.key].mode = 'per_subgame'"
+                                class="flex-1 cursor-pointer rounded-lg py-1.5 text-[10px] font-black uppercase tracking-wider transition-colors"
+                                :class="local[t.key].mode === 'per_subgame' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200'">
+                                Per Subgame
+                            </button>
                         </div>
 
-                        <!-- per-game rates -->
-                        <div v-if="local[t.key].mode === 'per_game'" class="mt-3">
-                            <template v-if="gameTypesFor(t.key).length">
-                                <p class="mb-2 text-[9px] font-black uppercase tracking-widest text-slate-500">Rate per game type</p>
-                                <div class="space-y-2">
-                                    <div v-for="gt in gameTypesFor(t.key)" :key="gt"
-                                        class="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
-                                        <div class="mb-2 text-[11px] font-black uppercase tracking-wider text-slate-200">{{ gt }}</div>
-                                        <div class="grid grid-cols-2 gap-2">
-                                            <StepperField v-model="local[t.key].gameRates[gt].weekday" label="Weekday" suffix="Rs" accent="slate" />
-                                            <StepperField v-model="local[t.key].gameRates[gt].weekend" label="Weekend" suffix="Rs" accent="amber" />
-                                        </div>
+                        <!-- rate inputs — same selectors for every mode -->
+                        <div class="mt-3">
+                            <!-- per subgame: a rate per game type -->
+                            <div v-if="local[t.key].mode === 'per_subgame' && gameTypesFor(t.key).length" class="space-y-2">
+                                <div v-for="gt in gameTypesFor(t.key)" :key="gt"
+                                    class="rounded-xl border border-slate-800 bg-slate-900/50 p-3">
+                                    <div class="mb-2 text-[11px] font-black uppercase tracking-wider text-slate-200">{{ gt }}</div>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <StepperField v-model="local[t.key].gameRates[gt].weekday" label="Weekday" suffix="Rs" accent="slate" />
+                                        <StepperField v-model="local[t.key].gameRates[gt].weekend" label="Weekend" suffix="Rs" accent="amber" />
                                     </div>
                                 </div>
-                            </template>
+                            </div>
+                            <!-- per game: one flat game rate -->
+                            <div v-else-if="local[t.key].mode === 'per_game'" class="grid grid-cols-2 gap-3">
+                                <StepperField v-model="local[t.key].weekdayGame" label="Weekday" suffix="Rs" accent="slate" />
+                                <StepperField v-model="local[t.key].weekendGame" label="Weekend" suffix="Rs" accent="amber" />
+                            </div>
+                            <!-- per minute -->
                             <div v-else class="grid grid-cols-2 gap-3">
-                                <StepperField v-model="local[t.key].weekdayGame" label="Weekday / game" suffix="Rs" accent="slate" />
-                                <StepperField v-model="local[t.key].weekendGame" label="Weekend / game" suffix="Rs" accent="amber" />
+                                <StepperField v-model="local[t.key].weekday" label="Weekday" suffix="Rs" accent="slate" />
+                                <StepperField v-model="local[t.key].weekend" label="Weekend" suffix="Rs" accent="amber" />
                             </div>
                         </div>
                     </div>
@@ -97,12 +101,15 @@ import StepperField from '../Fields/StepperField.vue'
 import { reactive, ref, computed, watchEffect } from 'vue'
 import { entitledTypes } from '@/composables/useTableTypes.js'
 
-const props = defineProps({ rates: Object })
+const props = defineProps({
+    rates: Object,
+    gameTracking: { type: Boolean, default: false },
+})
 const emit = defineEmits(['close-modal', 'save-configuration'])
 
 const deepCopy = (obj) => JSON.parse(JSON.stringify(obj))
 
-// Which game variants apply to each station type (for per-game-type rates).
+// Which game variants (subgames) apply to each station type.
 const GAME_TYPES = {
     pool: ['8-ball', '9-ball', '10-ball'],
     privatePool: ['8-ball', '9-ball', '10-ball'],
@@ -110,6 +117,8 @@ const GAME_TYPES = {
     privateSnooker: ['snooker-15', 'snooker-10', 'snooker-6', 'century'],
 }
 const gameTypesFor = (key) => GAME_TYPES[key] || []
+// Per-subgame is only meaningful for cue tables, and only once game tracking is on.
+const showSubgame = (key) => props.gameTracking && gameTypesFor(key).length > 0
 
 const ORDER = ['pool', 'privatePool', 'snooker', 'privateSnooker', 'ps5', 'foosball']
 const rank = (key) => {
@@ -120,7 +129,8 @@ const rank = (key) => {
 const openKey = ref(null)
 const toggle = (key) => { openKey.value = openKey.value === key ? null : key }
 
-// Fill in any missing per-game-type rate buckets for a type.
+const modeLabel = (m) => (m === 'per_subgame' ? 'Per subgame' : m === 'per_game' ? 'Per game' : 'Per min')
+
 const ensureGameRates = (key, gr) => {
     const out = gr && typeof gr === 'object' ? { ...gr } : {}
     for (const gt of gameTypesFor(key)) {
@@ -153,6 +163,8 @@ watchEffect(() => {
     for (const t of entitledTypes.value) {
         if (!local[t.key]) local[t.key] = normalise(t.key, null)
         else local[t.key].gameRates = ensureGameRates(t.key, local[t.key].gameRates)
+        // a type set to per_subgame but no longer eligible falls back gracefully
+        if (local[t.key].mode === 'per_subgame' && !showSubgame(t.key)) local[t.key].mode = 'per_game'
     }
 })
 
@@ -162,14 +174,11 @@ const rows = computed(() =>
 
 function summary(key) {
     const r = local[key]
-    if (r.mode === 'per_game') {
-        const gts = gameTypesFor(key)
-        if (gts.length) {
-            const vals = gts.map((gt) => r.gameRates[gt]?.weekday || 0).filter(Boolean)
-            return vals.length ? `Rs ${Math.min(...vals)}–${Math.max(...vals)}` : 'Rs 0'
-        }
-        return `Rs ${r.weekdayGame}`
+    if (r.mode === 'per_subgame') {
+        const vals = gameTypesFor(key).map((gt) => r.gameRates[gt]?.weekday || 0).filter(Boolean)
+        return vals.length ? `Rs ${Math.min(...vals)}–${Math.max(...vals)}` : 'Rs 0'
     }
+    if (r.mode === 'per_game') return `Rs ${r.weekdayGame}/${r.weekendGame}`
     return `Rs ${r.weekday}/${r.weekend}`
 }
 </script>

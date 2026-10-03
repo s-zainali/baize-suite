@@ -69,7 +69,7 @@
     <ConfirmDeleteModal v-if="activeModal === 'confirmDelete'" :uid="tableToRemove" @confirmRemove="confirmRemove()"
         @closeModal="activeModal = 'none'" />
 
-    <RatesModal v-if="activeModal === 'rates'" :rates="rates" @save-configuration="saveGlobalRates($event)"
+    <RatesModal v-if="activeModal === 'rates'" :rates="rates" :game-tracking="gameTracking" @save-configuration="saveGlobalRates($event)"
         @close-modal="activeModal = 'none'" />
 
     <KhataModal v-if="activeModal === 'khata'" @close-modal="activeModal = 'none'" @settled="refreshBillStatus()" />

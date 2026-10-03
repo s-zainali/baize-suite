@@ -596,9 +596,13 @@ def build_invoice(session):
     # charge is games × per-game rate rather than minutes × per-minute rate.
     game_type = session.game_type
     games_played = session.games_played or 0
-    if headline and billing_mode_for(headline['tableType']) == 'per_game':
+    _mode = billing_mode_for(headline['tableType']) if headline else 'per_minute'
+    if headline and _mode in ('per_game', 'per_subgame'):
         _games = max(1, games_played)
-        play_total = _games * game_rate_for(headline['tableType'], game_type)
+        # per_subgame bills the specific game being played; per_game is a flat
+        # per-game charge (game_type=None skips the per-game-type lookup).
+        _gt = game_type if _mode == 'per_subgame' else None
+        play_total = _games * game_rate_for(headline['tableType'], _gt)
         total_cost = play_total + canteen_total
 
     return {
@@ -1621,6 +1625,29 @@ def _push_game_log(log):
 
 
 @app.route('/api/bills/<int:log_id>/settle', methods=['POST'])
+def _push_khata_to_central(logs):
+    """When a bill is parked on a member's account (customer_id set), record it
+    as khata in central so it appears in the customer's app. Best-effort."""
+    try:
+        import central_client
+        from models import BranchLicense
+        for lg in logs:
+            cid = getattr(lg, 'customer_id', None)
+            if not cid:
+                continue
+            branch = Branch.query.get(lg.branch_id) if lg.branch_id else None
+            bl = BranchLicense.query.filter_by(branch_uid=branch.uid).first() if branch else None
+            club_uid = bl.club_uid if bl else None
+            if not club_uid:
+                continue
+            central_client.khata_charge(
+                cid, club_uid, lg.total_cost or 0,
+                description=f"{lg.table_type} #{lg.table_id}".strip(),
+                source='session', ref=str(lg.receipt_id or ''))
+    except Exception:
+        pass
+
+
 def settle_bill(log_id):
     """Settle a table bill — and anything charged to the same tab.
 
@@ -1652,6 +1679,7 @@ def settle_bill(log_id):
                 'error': 'An account needs a name — take payment at the counter instead',
             }), 400
         settle_bills(logs=logs, orders=orders, status='pending', payer=name)
+        _push_khata_to_central(logs)   # account khata → customer app
         paid = 0
     else:
         return jsonify({'error': 'Status must be paid, pending or khata'}), 400
@@ -2607,7 +2635,7 @@ def update_rates():
         if 'weekend' in vals:
             row.weekend_rate = int(vals['weekend'])
         if 'mode' in vals:
-            row.billing_mode = 'per_game' if vals['mode'] == 'per_game' else 'per_minute'
+            row.billing_mode = vals['mode'] if vals['mode'] in ('per_minute', 'per_game', 'per_subgame') else 'per_minute'
         if 'weekdayGame' in vals:
             row.weekday_game_rate = int(vals['weekdayGame'])
         if 'weekendGame' in vals:
