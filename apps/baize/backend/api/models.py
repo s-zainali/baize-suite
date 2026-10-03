@@ -214,7 +214,8 @@ class GlobalRate(SyncMixin, db.Model):
     # 'per_minute' (flat time billing) or 'per_game' (charged per game played).
     billing_mode = db.Column(db.String(12), nullable=False, default='per_minute')
     weekday_game_rate = db.Column(db.Integer, nullable=False, default=0)  # per-game
-    weekend_game_rate = db.Column(db.Integer, nullable=False, default=0)  # per-game
+    weekend_game_rate = db.Column(db.Integer, nullable=False, default=0)  # per-game (flat fallback)
+    game_rates = db.Column(db.Text, nullable=True)   # JSON: {game_type: {weekday, weekend}} per-game-type rates
 
     __table_args__ = (
         db.UniqueConstraint('branch_id', 'table_type', name='uq_branch_table_type'),

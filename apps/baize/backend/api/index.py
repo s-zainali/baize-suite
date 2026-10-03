@@ -420,13 +420,22 @@ def rate_for(table_type, when=None):
     return row.weekend_rate if when.weekday() >= 5 else row.weekday_rate
 
 
-def game_rate_for(table_type, when=None):
-    """Per-game rate in force for a table type (weekend = Sat/Sun)."""
+def game_rate_for(table_type, game_type=None, when=None):
+    """Per-game rate in force. Prefers a per-game-type rate (e.g. 'century' vs
+    'snooker-15'); falls back to the table type's flat per-game rate."""
     row = GlobalRate.query.filter_by(table_type=table_type).first()
     if not row:
         return 0
     when = when or datetime.now()
-    return row.weekend_game_rate if when.weekday() >= 5 else row.weekday_game_rate
+    weekend = when.weekday() >= 5
+    if game_type and row.game_rates:
+        try:
+            gr = json.loads(row.game_rates).get(game_type)
+            if gr:
+                return int(gr.get('weekend' if weekend else 'weekday', 0) or 0)
+        except Exception:
+            pass
+    return row.weekend_game_rate if weekend else row.weekday_game_rate
 
 
 def billing_mode_for(table_type):
@@ -589,7 +598,7 @@ def build_invoice(session):
     games_played = session.games_played or 0
     if headline and billing_mode_for(headline['tableType']) == 'per_game':
         _games = max(1, games_played)
-        play_total = _games * game_rate_for(headline['tableType'])
+        play_total = _games * game_rate_for(headline['tableType'], game_type)
         total_cost = play_total + canteen_total
 
     return {
@@ -1335,7 +1344,8 @@ def get_state():
     rates = {r.table_type: {'weekday': r.weekday_rate, 'weekend': r.weekend_rate,
                             'mode': r.billing_mode,
                             'weekdayGame': r.weekday_game_rate,
-                            'weekendGame': r.weekend_game_rate}
+                            'weekendGame': r.weekend_game_rate,
+                            'gameRates': (json.loads(r.game_rates) if r.game_rates else {})}
              for r in rate_rows}
     lounges = Lounge.query.filter(Lounge.deleted_at.is_(None)).filter(_branch_scope(Lounge)).all()
     # The dashboard strip lists only what still needs starting.
@@ -2602,6 +2612,8 @@ def update_rates():
             row.weekday_game_rate = int(vals['weekdayGame'])
         if 'weekendGame' in vals:
             row.weekend_game_rate = int(vals['weekendGame'])
+        if 'gameRates' in vals:
+            row.game_rates = json.dumps(vals['gameRates'] or {})
     db.session.commit()
     return jsonify({'success': True})
 
